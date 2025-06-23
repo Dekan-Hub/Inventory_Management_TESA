@@ -62,6 +62,6 @@ app.get('/', (req, res) => {
 
 // --- Middleware de Manejo de Errores ---
 // Si tu errorHandler causa un problema con las dependencias, coméntalo temporalmente
-app.use(errorHandler); // Descomentar cuando las rutas base funcionen
+//app.use(errorHandler); // Descomentar cuando las rutas base funcionen
 
 module.exports = app;
