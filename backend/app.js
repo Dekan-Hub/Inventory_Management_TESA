@@ -8,6 +8,8 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const errorHandler = require('./middleware/error');
+
 
 // Cargamos las variables de entorno
 dotenv.config();
@@ -19,6 +21,8 @@ const authRoutes = require('./routes/auth.routes');
 const app = express();
 
 // --- Middlewares ---
+// Middleware de manejo de errores (debe ser el ÚLTIMO middleware)
+app.use(errorHandler); // <-- Asegúrate de que esta línea esté al final de tus `app.use`
 
 // Habilita CORS para permitir que el frontend (que corre en otro dominio/puerto)
 // se comunique con este backend.
@@ -42,6 +46,7 @@ app.use('/api/auth', authRoutes);
 app.get('/', (req, res) => {
   res.json({ message: 'API del Sistema de Gestión de Inventarios TESA funcionando.' });
 });
+
 
 
 // Exportamos la aplicación para que pueda ser utilizada por server.js
