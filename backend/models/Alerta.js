@@ -1,86 +1,61 @@
 /**
- * @file Modelo de datos para la entidad 'Alerta'.
- * @description Representa la tabla 'alertas' en la base de datos.
- * Define el esquema para las notificaciones internas del sistema.
+ * @file backend/models/Alerta.js
+ * @description Define el modelo de base de datos para la entidad Alerta.
+ * Representa notificaciones o avisos importantes dentro del sistema.
  */
 
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/db'); // Importa la instancia de Sequelize
-const Usuario = require('./Usuario'); // Importa el modelo Usuario para la asociación
 
-const Alerta = sequelize.define('Alerta', {
-  /**
-   * @property {number} id - Identificador único de la alerta.
-   * Es la clave primaria y se auto-incrementa.
-   */
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-    allowNull: false
-  },
-  /**
-   * @property {string} tipo_alerta - Tipo o categoría de la alerta (ej. 'Mantenimiento', 'Baja', 'Stock bajo').
-   * No puede ser nulo o vacío.
-   */
-  tipo_alerta: {
-    type: DataTypes.STRING(100),
-    allowNull: false,
-    validate: {
-      notEmpty: {
-        msg: 'El tipo de alerta no puede estar vacío.'
-      }
-    }
-  },
-  /**
-   * @property {string} mensaje - Contenido del mensaje de la alerta.
-   * No puede ser nulo o vacío.
-   */
-  mensaje: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-    validate: {
-      notEmpty: {
-        msg: 'El mensaje de la alerta no puede estar vacío.'
-      }
-    }
-  },
-  /**
-   * @property {boolean} leida - Indica si la alerta ha sido leída por el usuario.
-   * Por defecto es false (no leída).
-   */
-  leida: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false
-  },
-  /**
-   * @property {number} id_usuario_destino - Clave foránea que referencia al Usuario al que va dirigida la alerta.
-   * Puede ser nulo si la alerta es para todos los usuarios o un rol específico (manejar en lógica).
-   */
-  id_usuario_destino: {
-    type: DataTypes.INTEGER,
-    allowNull: true, // Puede ser nulo si es una alerta general
-    references: { // Define la relación con la tabla 'usuarios'
-      model: Usuario,
-      key: 'id'
-    }
-  }
-}, {
-  /**
-   * @property {object} options - Opciones de configuración para el modelo Sequelize.
-   * @property {string} options.tableName - Nombre de la tabla en la base de datos.
-   * @property {boolean} options.timestamps - Habilita las columnas `createdAt` y `updatedAt`.
-   */
-  tableName: 'alertas', // Nombre explícito de la tabla en la DB
-  timestamps: true // Habilita createdAt y updatedAt
-});
-
-// --- Definición de Asociaciones a nivel de modelo ---
 /**
- * @description Define que una Alerta pertenece a un Usuario (su destinatario).
- * La clave foránea es `id_usuario_destino`. El alias para la relación es 'destinatario'.
+ * @function
+ * @param {import('sequelize').Sequelize} sequelize - La instancia de Sequelize.
+ * @returns {import('sequelize').Model} El modelo Alerta definido.
+ * @description Define el modelo Alerta con sus atributos y opciones.
  */
-Alerta.belongsTo(Usuario, { foreignKey: 'id_usuario_destino', as: 'destinatario' });
-
-module.exports = Alerta;
+module.exports = (sequelize) => {
+  /**
+   * @typedef {object} AlertaAttributes
+   * @property {number} id_alerta - Identificador único de la alerta (PK, auto-incrementable).
+   * @property {('baja'|'media'|'alta')} tipo_alerta - Nivel de prioridad o tipo de la alerta.
+   * @property {string} mensaje - Contenido del mensaje de la alerta.
+   * @property {Date} fecha_creacion - Fecha y hora de creación de la alerta.
+   * @property {boolean} leida - Indica si la alerta ha sido leída por el destinatario.
+   * @property {number} id_usuario_destino - FK: ID del usuario al que se destina la alerta.
+   * @property {number} [id_usuario_origen] - FK: ID del usuario que generó la alerta (opcional).
+   * @property {number} [id_equipo_asociado] - FK: ID del equipo asociado a la alerta (opcional).
+   */
+  const Alerta = sequelize.define('Alerta', {
+    id_alerta: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      comment: 'Identificador único de la alerta'
+    },
+    tipo_alerta: {
+      type: DataTypes.ENUM('baja', 'media', 'alta'),
+      allowNull: false,
+      comment: 'Nivel de prioridad de la alerta'
+    },
+    mensaje: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+      comment: 'Contenido del mensaje de la alerta'
+    },
+    fecha_creacion: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+      comment: 'Fecha y hora de creación de la alerta'
+    },
+    leida: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: 'Indica si la alerta ha sido leída'
+    }
+  }, {
+    tableName: 'alertas', // Nombre de la tabla en la base de datos
+    timestamps: false // Deshabilita los campos 'createdAt' y 'updatedAt'
+  });
+  return Alerta;
+};
