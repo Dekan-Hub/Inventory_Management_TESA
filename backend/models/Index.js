@@ -80,7 +80,8 @@ const Usuario = sequelize.define('Usuario', {
     tableName: 'usuarios', // Nombre de la tabla en la base de datos
     timestamps: false // Deshabilita los campos 'createdAt' y 'updatedAt' de Sequelize
 });
-
+console.log('DEBUG: Cargando usuarioRoutes...');
+console.log('DEBUG: Tipo de usuarioRoutes:', typeof usuarioRoutes);
 /**
  * @typedef {object} TipoEquipo
  * @property {number} id_tipo_equipo - Identificador único del tipo de equipo (PK, auto-incrementable).
@@ -177,17 +178,17 @@ const Ubicacion = sequelize.define('Ubicacion', {
 /**
  * @typedef {object} Equipo
  * @property {number} id_equipo - Identificador único del equipo (PK, auto-incrementable).
- * @property {string} nombre_equipo - Nombre descriptivo del equipo.
+ * @property {string} nombre - Nombre descriptivo del equipo.
  * @property {string} numero_serie - Número de serie único del equipo.
  * @property {string} [modelo] - Modelo del equipo.
  * @property {string} [marca] - Marca del equipo.
- * @property {string} [descripcion] - Descripción detallada del equipo.
+ * @property {string} [observaciones] - Observaciones detalladas del equipo (reemplaza descripcion).
  * @property {Date} [fecha_adquisicion] - Fecha de adquisición del equipo.
  * @property {Date} [fecha_ultimo_mantenimiento] - Última fecha de mantenimiento del equipo.
  * @property {number} [costo_adquisicion] - Costo de adquisición del equipo.
- * @property {number} id_tipo_equipo - FK: ID del tipo de equipo al que pertenece.
- * @property {number} id_estado_equipo - FK: ID del estado actual del equipo.
- * @property {number} id_ubicacion - FK: ID de la ubicación actual del equipo.
+ * @property {number} TipoEquipoid - FK: ID del tipo de equipo al que pertenece. (Confirmado en DB)
+ * @property {number} EstadoEquipoid - FK: ID del estado actual del equipo. (Confirmado en DB)
+ * @property {number} Ubicacionid - FK: ID de la ubicación actual del equipo. (Confirmado en DB)
  * @property {number} [id_usuario_asignado] - FK: ID del usuario al que está asignado el equipo (opcional).
  */
 const Equipo = sequelize.define('Equipo', {
@@ -197,7 +198,7 @@ const Equipo = sequelize.define('Equipo', {
         autoIncrement: true,
         comment: 'Identificador único del equipo'
     },
-    nombre_equipo: {
+    nombre: { // CORRECCIÓN: Nombre de columna para que coincida con la migración y seeder
         type: DataTypes.STRING(100),
         allowNull: false,
         comment: 'Nombre descriptivo del equipo'
@@ -218,10 +219,10 @@ const Equipo = sequelize.define('Equipo', {
         allowNull: true,
         comment: 'Marca del equipo'
     },
-    descripcion: {
+    observaciones: { // CORRECCIÓN: Nombre de columna para que coincida con la migración y seeder
         type: DataTypes.TEXT,
         allowNull: true,
-        comment: 'Descripción detallada del equipo'
+        comment: 'Observaciones detalladas del equipo'
     },
     fecha_adquisicion: {
         type: DataTypes.DATE,
@@ -237,6 +238,27 @@ const Equipo = sequelize.define('Equipo', {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: true,
         comment: 'Costo de adquisición del equipo'
+    },
+    // --- CORRECCIÓN CRÍTICA: Añadir las columnas de claves foráneas como atributos del modelo ---
+    TipoEquipoid: { // Nombre de la columna en la DB, como confirmaste
+        type: DataTypes.INTEGER,
+        allowNull: false, // Asumiendo que es NOT NULL por la migración
+        comment: 'ID de clave foránea para el tipo de equipo'
+    },
+    EstadoEquipoid: { // Nombre de la columna en la DB, como confirmaste
+        type: DataTypes.INTEGER,
+        allowNull: false, // Asumiendo que es NOT NULL por la migración
+        comment: 'ID de clave foránea para el estado del equipo'
+    },
+    Ubicacionid: { // Nombre de la columna en la DB, como confirmaste
+        type: DataTypes.INTEGER,
+        allowNull: true, // Asumiendo que es NULLABLE por la migración
+        comment: 'ID de clave foránea para la ubicación del equipo'
+    },
+    id_usuario_asignado: { // Este es el que está en tu typedef, si existe en la migración
+        type: DataTypes.INTEGER,
+        allowNull: true, // Asumiendo que es opcional
+        comment: 'FK: ID del usuario al que está asignado el equipo'
     }
 }, {
     tableName: 'equipos',
@@ -280,6 +302,16 @@ const Mantenimiento = sequelize.define('Mantenimiento', {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: true,
         comment: 'Costo total del mantenimiento'
+    },
+    id_equipo: { // FK: ID del equipo al que se le realizó el mantenimiento.
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'FK: ID del equipo asociado al mantenimiento'
+    },
+    id_tecnico: { // FK: ID del usuario (técnico) que realizó el mantenimiento.
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'FK: ID del técnico que realizó el mantenimiento'
     }
 }, {
     tableName: 'mantenimientos',
@@ -325,6 +357,21 @@ const Alerta = sequelize.define('Alerta', {
         allowNull: false,
         defaultValue: false,
         comment: 'Indica si la alerta ha sido leída'
+    },
+    id_usuario_destino: { // FK
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'FK: ID del usuario al que se destina la alerta'
+    },
+    id_usuario_origen: { // FK (Opcional)
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'FK: ID del usuario que generó la alerta (opcional)'
+    },
+    id_equipo_asociado: { // FK (Opcional)
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'FK: ID del equipo asociado a la alerta (opcional)'
     }
 }, {
     tableName: 'alertas',
@@ -366,6 +413,36 @@ const Movimiento = sequelize.define('Movimiento', {
         type: DataTypes.TEXT,
         allowNull: true,
         comment: 'Observaciones adicionales sobre el movimiento'
+    },
+    id_equipo: { // FK
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'FK: ID del equipo involucrado en el movimiento'
+    },
+    id_usuario_realiza_movimiento: { // FK (Opcional)
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'FK: ID del usuario que registró el movimiento (opcional)'
+    },
+    id_usuario_anterior: { // FK (Opcional)
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'FK: ID del usuario al que estaba asignado el equipo antes del movimiento (opcional)'
+    },
+    id_usuario_actual: { // FK (Opcional)
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'FK: ID del usuario al que está asignado el equipo después del movimiento (opcional)'
+    },
+    id_ubicacion_anterior: { // FK (Opcional)
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'FK: ID de la ubicación anterior del equipo (opcional)'
+    },
+    id_ubicacion_actual: { // FK (Opcional)
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'FK: ID de la ubicación actual del equipo (opcional)'
     }
 }, {
     tableName: 'movimientos',
@@ -402,6 +479,11 @@ const Reporte = sequelize.define('Reporte', {
         type: DataTypes.JSON, // Utiliza JSON para almacenar datos estructurados flexibles
         allowNull: true,
         comment: 'Datos del reporte en formato JSON'
+    },
+    id_usuario_genera: { // FK
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'FK: ID del usuario que generó el reporte'
     }
 }, {
     tableName: 'reportes',
@@ -459,6 +541,21 @@ const Solicitud = sequelize.define('Solicitud', {
         type: DataTypes.TEXT,
         allowNull: true,
         comment: 'Observaciones del resolutor de la solicitud'
+    },
+    id_usuario_solicitante: { // FK
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'FK: ID del usuario que creó la solicitud'
+    },
+    id_usuario_resolutor: { // FK (Opcional)
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'FK: ID del usuario que resolvió la solicitud (opcional)'
+    },
+    id_equipo_solicitado: { // FK (Opcional)
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'FK: ID del equipo al que hace referencia la solicitud (opcional)'
     }
 }, {
     tableName: 'solicitudes',
@@ -471,14 +568,14 @@ const Solicitud = sequelize.define('Solicitud', {
 // un 'as' (alias) para facilitar la inclusión (eager loading) en consultas.
 
 // Relaciones para Equipo
-Equipo.belongsTo(TipoEquipo, { foreignKey: 'id_tipo_equipo', as: 'tipoDeEquipo' });
-TipoEquipo.hasMany(Equipo, { foreignKey: 'id_tipo_equipo', as: 'equiposDeEsteTipo' });
+Equipo.belongsTo(TipoEquipo, { foreignKey: 'TipoEquipoid', as: 'tipoDeEquipo' }); // Corregido FK name
+TipoEquipo.hasMany(Equipo, { foreignKey: 'TipoEquipoid', as: 'equiposDeEsteTipo' }); // Corregido FK name
 
-Equipo.belongsTo(EstadoEquipo, { foreignKey: 'id_estado_equipo', as: 'estadoActualDelEquipo' });
-EstadoEquipo.hasMany(Equipo, { foreignKey: 'id_estado_equipo', as: 'equiposSegunEstado' });
+Equipo.belongsTo(EstadoEquipo, { foreignKey: 'EstadoEquipoid', as: 'estadoActualDelEquipo' }); // Corregido FK name
+EstadoEquipo.hasMany(Equipo, { foreignKey: 'EstadoEquipoid', as: 'equiposSegunEstado' }); // Corregido FK name
 
-Equipo.belongsTo(Ubicacion, { foreignKey: 'id_ubicacion', as: 'ubicacionActualDelEquipo' });
-Ubicacion.hasMany(Equipo, { foreignKey: 'id_ubicacion', as: 'equiposUbicadosAqui' });
+Equipo.belongsTo(Ubicacion, { foreignKey: 'Ubicacionid', as: 'ubicacionActualDelEquipo' }); // Corregido FK name
+Ubicacion.hasMany(Equipo, { foreignKey: 'Ubicacionid', as: 'equiposUbicadosAqui' }); // Corregido FK name
 
 Equipo.belongsTo(Usuario, { foreignKey: 'id_usuario_asignado', as: 'usuarioAsignadoAlEquipo' });
 Usuario.hasMany(Equipo, { foreignKey: 'id_usuario_asignado', as: 'equiposAsignadosPorUsuario' });

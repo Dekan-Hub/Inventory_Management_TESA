@@ -26,7 +26,7 @@ exports.generateReport = (data, format = 'json') => {
     return Buffer.from(`Dummy report for ${data.length} items in ${format} format.`);
 };
 
-// Puedes añadir más funciones específicas para cada tipo de reporte o formato.
+// Se pueden añadir más funciones específicas para cada tipo de reporte o formato.
 exports.generatePdfReport = (data) => {
     // Lógica para generar un PDF
     // console.log('Generating PDF report...');

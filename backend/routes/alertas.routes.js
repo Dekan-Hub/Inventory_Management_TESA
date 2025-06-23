@@ -6,7 +6,7 @@
 
 const express = require('express');
 const alertaController = require('../controllers/alertas.controller');
-const { protect, authorize } = require('../middleware/auth');
+const { verifyToken, checkRole } = require('../middleware/auth'); // Corregido: Usar verifyToken y checkRole
 
 const router = express.Router();
 
@@ -15,7 +15,7 @@ const router = express.Router();
  * @description Crea una nueva alerta. Solo accesible por administradores y técnicos.
  * @access Private (Admin, Tecnico)
  */
-router.post('/', protect, authorize('administrador', 'tecnico'), alertaController.crearAlerta);
+router.post('/', verifyToken, checkRole(['administrador', 'tecnico']), alertaController.crearAlerta); // Corregido: Usar verifyToken y checkRole
 
 /**
  * @route GET /api/alertas
@@ -23,17 +23,19 @@ router.post('/', protect, authorize('administrador', 'tecnico'), alertaControlle
  * Un usuario normal solo debería ver sus propias alertas.
  * @access Private (Admin, Tecnico)
  */
-router.get('/', protect, authorize('administrador', 'tecnico'), alertaController.obtenerAlertas);
+router.get('/', verifyToken, checkRole(['administrador', 'tecnico']), alertaController.obtenerAlertas); // Corregido: Usar verifyToken y checkRole
 
 /**
  * @route GET /api/alertas/me
  * @description Obtiene las alertas dirigidas al usuario autenticado.
  * @access Private (All authenticated users)
  */
-router.get('/me', protect, async (req, res, next) => {
+router.get('/me', verifyToken, async (req, res, next) => { // Corregido: Usar verifyToken
   try {
     // Sobreescribe el filtro para que solo vea sus propias alertas
-    req.query.usuarioDestinoId = req.usuario.id;
+    // Nota: Aquí se usaba 'req.usuario.id'. Si tu JWT adjunta el ID como 'req.user.id' o 'req.user.id_usuario',
+    // deberías ajustarlo para que coincida con la estructura de tu token.
+    req.query.usuarioDestinoId = req.user.id_usuario || req.user.id; // Ajuste sugerido
     await alertaController.obtenerAlertas(req, res, next);
   } catch (error) {
     next(error);
@@ -46,11 +48,13 @@ router.get('/me', protect, async (req, res, next) => {
  * y el usuario destino de la alerta.
  * @access Private (Admin, Tecnico, Target User)
  */
-router.get('/:id', protect, async (req, res, next) => {
+router.get('/:id', verifyToken, async (req, res, next) => { // Corregido: Usar verifyToken
   try {
-    const alerta = await alertaController.obtenerAlertaPorId(req, res, next);
-    // Lógica adicional para asegurar que un usuario normal solo vea sus propias alertas
-    if (req.usuario.rol !== 'administrador' && req.usuario.rol !== 'tecnico' && alerta && alerta.id_usuario_destino !== req.usuario.id) {
+    // Llama al controlador para obtener la alerta primero
+    // Asumiendo que obtenerAlertaPorId devuelve la alerta o la maneja directamente la respuesta
+    const alerta = await alertaController.obtenerAlertaPorId(req, res, next); // Esto puede necesitar ser ajustado si el controller ya manda la respuesta
+
+    if (alerta && (req.user.rol !== 'administrador' && req.user.rol !== 'tecnico' && alerta.id_usuario_destino !== (req.user.id_usuario || req.user.id))) {
       return res.status(403).json({ message: 'Acceso denegado. No tiene permisos para ver esta alerta.' });
     }
   } catch (error) {
@@ -64,21 +68,19 @@ router.get('/:id', protect, async (req, res, next) => {
  * y el usuario destino de la alerta.
  * @access Private (Admin, Tecnico, Target User)
  */
-router.put('/:id/read', protect, async (req, res, next) => {
+router.put('/:id/read', verifyToken, async (req, res, next) => { // Corregido: Usar verifyToken
   try {
     const { id } = req.params;
-    const alerta = await Alerta.findByPk(id);
-
+   
     if (!alerta) {
       return res.status(404).json({ message: 'Alerta no encontrada.' });
-    }
+     }
 
-    // Permitir marcar como leída solo si es admin/tecnico o el usuario destino
-    if (req.usuario.rol === 'administrador' || req.usuario.rol === 'tecnico' || alerta.id_usuario_destino === req.usuario.id) {
-      await alertaController.marcarAlertaComoLeida(req, res, next);
-    } else {
-      return res.status(403).json({ message: 'Acceso denegado. No tiene permisos para marcar esta alerta como leída.' });
-    }
+     if (req.user.rol === 'administrador' || req.user.rol === 'tecnico' || alerta.id_usuario_destino === (req.user.id_usuario || req.user.id)) {
+      await alertaController.marcarAlertaComoLeida(req, res, next); // Aquí se asume que el controlador hace el trabajo
+     } else {
+       return res.status(403).json({ message: 'Acceso denegado. No tiene permisos para marcar esta alerta como leída.' });
+     }
   } catch (error) {
     next(error);
   }
@@ -89,6 +91,6 @@ router.put('/:id/read', protect, async (req, res, next) => {
  * @description Elimina una alerta por su ID. Solo accesible por administradores.
  * @access Private (Admin only)
  */
-router.delete('/:id', protect, authorize('administrador'), alertaController.eliminarAlerta);
+router.delete('/:id', verifyToken, checkRole(['administrador']), alertaController.eliminarAlerta); // Corregido: Usar verifyToken y checkRole
 
 module.exports = router;

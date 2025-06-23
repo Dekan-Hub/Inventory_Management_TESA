@@ -7,7 +7,7 @@
 
 const express = require('express');
 const usuarioController = require('../controllers/usuarios.controller');
-const { protect, authorize } = require('../middleware/auth'); // Importa los middlewares
+const { verifyToken, checkRole } = require('../middleware/auth'); // Importa los middlewares
 
 const router = express.Router();
 
@@ -20,34 +20,34 @@ const router = express.Router();
  * @description Crea un nuevo usuario. Solo accesible por administradores.
  * @access Private (Admin only)
  */
-router.post('/', protect, authorize('administrador'), usuarioController.crearUsuario);
+router.post('/', verifyToken, checkRole(['administrador']), usuarioController.crearUsuario);
 
 /**
  * @route GET /api/usuarios
  * @description Obtiene todos los usuarios. Accesible por administradores y técnicos.
  * @access Private (Admin, Tecnico)
  */
-router.get('/', protect, authorize('administrador', 'tecnico'), usuarioController.obtenerUsuarios);
+router.get('/', verifyToken, checkRole(['administrador', 'tecnico']), usuarioController.obtenerUsuarios);
 
 /**
  * @route GET /api/usuarios/:id
  * @description Obtiene un usuario por su ID. Accesible por administradores y técnicos.
  * @access Private (Admin, Tecnico)
  */
-router.get('/:id', protect, authorize('administrador', 'tecnico'), usuarioController.obtenerUsuarioPorId);
+router.get('/:id', verifyToken, checkRole(['administrador', 'tecnico']), usuarioController.obtenerUsuarioPorId);
 
 /**
  * @route PUT /api/usuarios/:id
  * @description Actualiza un usuario por su ID. Solo accesible por administradores.
  * @access Private (Admin only)
  */
-router.put('/:id', protect, authorize('administrador'), usuarioController.actualizarUsuario);
+router.put('/:id', verifyToken, checkRole(['administrador']), usuarioController.actualizarUsuario);
 
 /**
  * @route DELETE /api/usuarios/:id
  * @description Elimina un usuario por su ID. Solo accesible por administradores.
  * @access Private (Admin only)
  */
-router.delete('/:id', protect, authorize('administrador'), usuarioController.eliminarUsuario);
+router.delete('/:id', verifyToken, checkRole(['administrador']), usuarioController.eliminarUsuario);
 
 module.exports = router;

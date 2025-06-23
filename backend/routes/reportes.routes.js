@@ -16,7 +16,7 @@ const reporteController = require('../controllers/reportes.controller');
 
 // Importa el middleware de autenticación y protección de rutas.
 // Es crucial que 'protect' esté exportado correctamente desde 'auth.js'.
-const { protect } = require('../middleware/auth'); 
+const { verifyToken, checkRole } = require('../middleware/auth'); // Corrección aquí: Usar verifyToken y checkRole
 
 // --- Rutas Generales de Reportes ---
 
@@ -26,7 +26,7 @@ const { protect } = require('../middleware/auth');
  * Requiere autenticación (token JWT).
  * @access Private
  */
-router.get('/', protect, reporteController.obtenerTodosLosReportes);
+router.get('/', verifyToken, reporteController.obtenerTodosLosReportes); // Corrección aquí: Usar verifyToken
 
 /**
  * @route GET /api/reportes/:id
@@ -34,7 +34,7 @@ router.get('/', protect, reporteController.obtenerTodosLosReportes);
  * Requiere autenticación (token JWT).
  * @access Private
  */
-router.get('/:id', protect, reporteController.obtenerReportePorId);
+router.get('/:id', verifyToken, reporteController.obtenerReportePorId); // Corrección aquí: Usar verifyToken
 
 /**
  * @route POST /api/reportes/generar
@@ -43,7 +43,7 @@ router.get('/:id', protect, reporteController.obtenerReportePorId);
  * Requiere autenticación (token JWT).
  * @access Private
  */
-router.post('/generar', protect, reporteController.generarReporteDinamico);
+router.post('/generar', verifyToken, reporteController.generarReporteDinamico); // Corrección aquí: Usar verifyToken
 
 // --- Rutas Específicas para la Generación de Reportes ---
 // Estas rutas pueden llamar a funciones específicas en el controlador
@@ -55,35 +55,35 @@ router.post('/generar', protect, reporteController.generarReporteDinamico);
  * Incluye detalles básicos de cada equipo.
  * @access Private
  */
-router.get('/inventario/general', protect, reporteController.generarReporteInventarioGeneral);
+router.get('/inventario/general', verifyToken, reporteController.generarReporteInventarioGeneral); // Corrección aquí: Usar verifyToken
 
 /**
  * @route GET /api/reportes/inventario/por-tipo
  * @description Genera un reporte de inventario agrupado por tipo de equipo.
  * @access Private
  */
-router.get('/inventario/por-tipo', protect, reporteController.generarReporteInventarioPorTipo);
+router.get('/inventario/por-tipo', verifyToken, reporteController.generarReporteInventarioPorTipo); // Corrección aquí: Usar verifyToken
 
 /**
  * @route GET /api/reportes/inventario/por-estado
  * @description Genera un reporte de inventario agrupado por estado de equipo.
  * @access Private
  */
-router.get('/inventario/por-estado', protect, reporteController.generarReporteInventarioPorEstado);
+router.get('/inventario/por-estado', verifyToken, reporteController.generarReporteInventarioPorEstado); // Corrección aquí: Usar verifyToken
 
 /**
  * @route GET /api/reportes/inventario/por-ubicacion
  * @description Genera un reporte de inventario agrupado por ubicación.
  * @access Private
  */
-router.get('/inventario/por-ubicacion', protect, reporteController.generarReporteInventarioPorUbicacion);
+router.get('/inventario/por-ubicacion', verifyToken, reporteController.generarReporteInventarioPorUbicacion); // Corrección aquí: Usar verifyToken
 
 /**
  * @route GET /api/reportes/inventario/asignaciones
  * @description Genera un reporte de asignaciones actuales de equipos a usuarios.
  * @access Private
  */
-router.get('/inventario/asignaciones', protect, reporteController.generarReporteInventarioAsignaciones);
+router.get('/inventario/asignaciones', verifyToken, reporteController.generarReporteInventarioAsignaciones); // Corrección aquí: Usar verifyToken
 
 
 /**
@@ -92,14 +92,14 @@ router.get('/inventario/asignaciones', protect, reporteController.generarReporte
  * Puede incluir filtros por fecha, equipo o técnico.
  * @access Private
  */
-router.get('/mantenimientos/historial', protect, reporteController.generarReporteHistorialMantenimientos);
+router.get('/mantenimientos/historial', verifyToken, reporteController.generarReporteHistorialMantenimientos); // Corrección aquí: Usar verifyToken
 
 /**
  * @route GET /api/reportes/mantenimientos/pendientes
  * @description Genera un reporte de mantenimientos pendientes o programados.
  * @access Private
  */
-router.get('/mantenimientos/pendientes', protect, reporteController.generarReporteMantenimientosPendientes);
+router.get('/mantenimientos/pendientes', verifyToken, reporteController.generarReporteMantenimientosPendientes); // Corrección aquí: Usar verifyToken
 
 /**
  * @route GET /api/reportes/movimientos/historial
@@ -107,21 +107,22 @@ router.get('/mantenimientos/pendientes', protect, reporteController.generarRepor
  * Puede incluir filtros por fecha, equipo, ubicación o usuario.
  * @access Private
  */
-router.get('/movimientos/historial', protect, reporteController.generarReporteHistorialMovimientos);
+router.get('/movimientos/historial', verifyToken, reporteController.generarReporteHistorialMovimientos); // Corrección aquí: Usar verifyToken
 
 /**
  * @route GET /api/reportes/alertas/activas
  * @description Genera un reporte de todas las alertas activas en el sistema.
  * @access Private
  */
-router.get('/alertas/activas', protect, reporteController.generarReporteAlertasActivas);
+router.get('/alertas/activas', verifyToken, reporteController.generarReporteAlertasActivas); // Corrección aquí: Usar verifyToken
 
 /**
  * @route GET /api/reportes/solicitudes/estado
  * @description Genera un reporte de solicitudes por su estado (pendientes, en proceso, completadas).
  * @access Private
  */
-router.get('/solicitudes/estado', protect, reporteController.generarReporteSolicitudesPorEstado);
+router.get('/solicitudes/estado', verifyToken, reporteController.generarReporteSolicitudesPorEstado); // Corrección aquí: Usar verifyToken
+
 /**
  * @exports router - Exporta la instancia del router configurado para ser utilizada en app.js.
  * ESTA LÍNEA ES CRÍTICA Y DEBE ESTAR AL FINAL DEL ARCHIVO.

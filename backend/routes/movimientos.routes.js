@@ -6,7 +6,7 @@
 
 const express = require('express');
 const movimientoController = require('../controllers/movimientos.controller');
-const { protect, authorize } = require('../middleware/auth');
+const { verifyToken, checkRole } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -15,26 +15,20 @@ const router = express.Router();
  * @description Registra un nuevo movimiento de equipo. Solo accesible por administradores y técnicos.
  * @access Private (Admin, Tecnico)
  */
-router.post('/', protect, authorize('administrador', 'tecnico'), movimientoController.registrarMovimiento);
+router.post('/', verifyToken, checkRole(['administrador', 'tecnico']), movimientoController.registrarMovimiento);
 
 /**
  * @route GET /api/movimientos
  * @description Obtiene todos los movimientos. Accesible por administradores y técnicos.
  * @access Private (Admin, Tecnico)
  */
-router.get('/', protect, authorize('administrador', 'tecnico'), movimientoController.obtenerMovimientos);
+router.get('/', verifyToken, checkRole(['administrador', 'tecnico']), movimientoController.obtenerMovimientos);
 
 /**
  * @route GET /api/movimientos/:id
  * @description Obtiene un movimiento por su ID. Accesible por administradores y técnicos.
  * @access Private (Admin, Tecnico)
  */
-router.get('/:id', protect, authorize('administrador', 'tecnico'), movimientoController.obtenerMovimientoPorId);
-
-// Nota: Generalmente no se permite actualizar o eliminar movimientos para mantener un historial.
-// Si se necesita, se debería implementar una "reversión" o un nuevo movimiento que anule el anterior.
-// Sin embargo, si tu requisito lo permite, puedes añadir las rutas PUT y DELETE aquí.
-// router.put('/:id', protect, authorize('administrador'), movimientoController.actualizarMovimiento);
-// router.delete('/:id', protect, authorize('administrador'), movimientoController.eliminarMovimiento);
+router.get('/:id', verifyToken, checkRole(['administrador', 'tecnico']), movimientoController.obtenerMovimientoPorId);
 
 module.exports = router;

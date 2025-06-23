@@ -5,7 +5,7 @@
 
 const express = require('express');
 const authController = require('../controllers/auth.controller');
-const { protect } = require('../middleware/auth'); // Importa el middleware de protección
+const { verifyToken } = require('../middleware/auth'); // Importa el middleware de verificación de token
 
 const router = express.Router();
 
@@ -21,6 +21,6 @@ router.post('/login', authController.login);
  * @description Obtiene el perfil del usuario autenticado. Requiere token JWT.
  * @access Private
  */
-router.get('/profile', protect, authController.getProfile);
+router.get('/profile', verifyToken, authController.getProfile);
 
 module.exports = router;

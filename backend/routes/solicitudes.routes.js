@@ -6,7 +6,7 @@
 
 const express = require('express');
 const solicitudController = require('../controllers/solicitudes.controller');
-const { protect, authorize } = require('../middleware/auth');
+const { verifyToken, checkRole } = require('../middleware/auth'); // Corregido: Usar verifyToken y checkRole
 
 const router = express.Router();
 
@@ -15,7 +15,7 @@ const router = express.Router();
  * @description Crea una nueva solicitud de equipo. Accesible por cualquier usuario autenticado.
  * @access Private (All authenticated users)
  */
-router.post('/', protect, solicitudController.crearSolicitud);
+router.post('/', verifyToken, solicitudController.crearSolicitud); // Corregido: Usar verifyToken
 
 /**
  * @route GET /api/solicitudes
@@ -23,17 +23,19 @@ router.post('/', protect, solicitudController.crearSolicitud);
  * Un usuario normal solo debería ver sus propias solicitudes.
  * @access Private (Admin, Tecnico)
  */
-router.get('/', protect, authorize('administrador', 'tecnico'), solicitudController.obtenerSolicitudes);
+router.get('/', verifyToken, checkRole(['administrador', 'tecnico']), solicitudController.obtenerSolicitudes); // Corregido: Usar verifyToken y checkRole
 
 /**
  * @route GET /api/solicitudes/me
  * @description Obtiene las solicitudes del usuario autenticado.
  * @access Private (All authenticated users)
  */
-router.get('/me', protect, async (req, res, next) => {
+router.get('/me', verifyToken, async (req, res, next) => { // Corregido: Usar verifyToken
   try {
     // Sobreescribe el filtro para que solo vea sus propias solicitudes
-    req.query.usuarioId = req.usuario.id;
+    // Nota: El comentario original usa req.usuario.id, pero tu auth.js adjunta req.user
+    // Por favor, verifica si es req.user.id_usuario o req.user.id según tu token.
+    req.query.usuarioId = req.user.id_usuario || req.user.id; // Ajuste sugerido si usas 'id_usuario' en el token
     await solicitudController.obtenerSolicitudes(req, res, next);
   } catch (error) {
     next(error);
@@ -47,20 +49,20 @@ router.get('/me', protect, async (req, res, next) => {
  * Un usuario normal solo debería ver sus propias solicitudes por ID.
  * @access Private (Admin, Tecnico)
  */
-router.get('/:id', protect, authorize('administrador', 'tecnico'), solicitudController.obtenerSolicitudPorId);
+router.get('/:id', verifyToken, checkRole(['administrador', 'tecnico']), solicitudController.obtenerSolicitudPorId); // Corregido: Usar verifyToken y checkRole
 
 /**
  * @route PUT /api/solicitudes/:id/estado
  * @description Actualiza el estado de una solicitud. Solo accesible por administradores y técnicos.
  * @access Private (Admin, Tecnico)
  */
-router.put('/:id/estado', protect, authorize('administrador', 'tecnico'), solicitudController.actualizarEstadoSolicitud);
+router.put('/:id/estado', verifyToken, checkRole(['administrador', 'tecnico']), solicitudController.actualizarEstadoSolicitud); // Corregido: Usar verifyToken y checkRole
 
 /**
  * @route DELETE /api/solicitudes/:id
  * @description Elimina una solicitud por su ID. Solo accesible por administradores.
  * @access Private (Admin only)
  */
-router.delete('/:id', protect, authorize('administrador'), solicitudController.eliminarSolicitud);
+router.delete('/:id', verifyToken, checkRole(['administrador']), solicitudController.eliminarSolicitud); // Corregido: Usar verifyToken y checkRole
 
 module.exports = router;

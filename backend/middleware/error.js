@@ -1,44 +1,46 @@
 /**
- * @file Middleware para el manejo centralizado de errores en la aplicación Express.
- * @description Captura errores que ocurren en las rutas o middlewares previos,
- * formatea la respuesta de error y la envía al cliente. Distingue entre errores
- * operacionales y errores de programación para evitar exponer información sensible.
+ * @file backend/middleware/error.js
+ * @description Middleware centralizado para el manejo de errores en la aplicación Express.
+ * Captura errores de las rutas y otros middlewares, y envía una respuesta HTTP estandarizada.
  */
 
+const logger = require('../utils/logger'); 
 /**
- * Middleware para manejar errores.
- * @function errorHandler
+ * Middleware de manejo de errores.
  * @param {Error} err - El objeto de error.
- * @param {object} req - Objeto de la petición (request).
- * @param {object} res - Objeto de la respuesta (response).
- * @param {function} next - Función para pasar el control al siguiente middleware.
- * @returns {object} Respuesta JSON con detalles del error.
+ * @param {object} req - Objeto de solicitud de Express.
+ * @param {object} res - Objeto de respuesta de Express.
+ * @param {function} next - Función para pasar el control al siguiente middleware (si aplica).
  */
 const errorHandler = (err, req, res, next) => {
-  // Determina el código de estado HTTP del error.
-  // Si el error tiene un `statusCode` definido, úsalo; de lo contrario, 500 (Error Interno del Servidor).
-  const statusCode = err.statusCode || 500;
+    // Determinar el código de estado HTTP y el mensaje de error
+    const statusCode = err.statusCode || 500; // Si el error tiene un statusCode, úsalo; de lo contrario, 500 (Error Interno del Servidor)
+    const message = err.message || 'Error interno del servidor.';
 
-  // Crea un objeto de error para enviar al cliente.
-  // En producción, evita enviar el stack trace completo por seguridad.
-  const errorResponse = {
-    status: 'error',
-    message: err.message || 'Ha ocurrido un error inesperado.',
-  };
+    // Registrar el error para depuración (usando tu logger si está disponible)
+    if (logger) {
+        logger.error(`[Error] ${req.method} ${req.originalUrl}: ${message}`, err.stack);
+    } else {
+        console.error(`[Error] ${req.method} ${req.originalUrl}: ${message}`, err.stack);
+    }
 
-  // En entorno de desarrollo, añade el stack trace para facilitar la depuración.
-  if (process.env.NODE_ENV === 'development') {
-    errorResponse.stack = err.stack;
-  }
-
-  // Registra el error en la consola del servidor (siempre es útil para la depuración).
-  console.error(`🚨 Error [${statusCode}]:`, err.message);
-  if (process.env.NODE_ENV === 'development' && err.stack) {
-    console.error(err.stack);
-  }
-
-  // Envía la respuesta de error al cliente.
-  res.status(statusCode).json(errorResponse);
+    // Enviar una respuesta de error JSON al cliente
+    res.status(statusCode).json({
+        success: false,
+        message: message,
+        // En un entorno de producción, podrías querer omitir 'stack' por seguridad
+        stack: process.env.NODE_ENV === 'development' ? err.stack : {}
+    });
 };
 
-module.exports = errorHandler;
+// Middleware para manejar rutas no encontradas (404)
+const notFound = (req, res, next) => {
+    const error = new Error(`No encontrado - ${req.originalUrl}`);
+    res.status(404);
+    next(error); // Pasa el error al middleware de manejo de errores
+};
+
+module.exports = {
+    errorHandler,
+    notFound
+};

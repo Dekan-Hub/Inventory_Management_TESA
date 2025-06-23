@@ -6,8 +6,7 @@
 
 const express = require('express');
 const tipoEquipoController = require('../controllers/tipo_equipo.controller');
-const { protect, authorize } = require('../middleware/auth');
-
+const { verifyToken, checkRole } = require('../middleware/auth'); // Esta línea ya estaba bien, importa lo correcto
 const router = express.Router();
 
 /**
@@ -15,34 +14,34 @@ const router = express.Router();
  * @description Crea un nuevo tipo de equipo. Solo accesible por administradores.
  * @access Private (Admin only)
  */
-router.post('/', protect, authorize('administrador'), tipoEquipoController.crearTipoEquipo);
+router.post('/', verifyToken, checkRole(['administrador']), tipoEquipoController.crearTipoEquipo);
 
 /**
  * @route GET /api/tipos-equipo
  * @description Obtiene todos los tipos de equipo. Accesible por todos los usuarios autenticados.
  * @access Private (All authenticated users)
  */
-router.get('/', protect, tipoEquipoController.obtenerTiposEquipo);
+router.get('/', verifyToken, tipoEquipoController.obtenerTiposEquipo);
 
 /**
  * @route GET /api/tipos-equipo/:id
  * @description Obtiene un tipo de equipo por su ID. Accesible por todos los usuarios autenticados.
  * @access Private (All authenticated users)
  */
-router.get('/:id', protect, tipoEquipoController.obtenerTipoEquipoPorId);
+router.get('/:id', verifyToken, tipoEquipoController.obtenerTipoEquipoPorId);
 
 /**
  * @route PUT /api/tipos-equipo/:id
  * @description Actualiza un tipo de equipo por su ID. Solo accesible por administradores.
  * @access Private (Admin only)
  */
-router.put('/:id', protect, authorize('administrador'), tipoEquipoController.actualizarTipoEquipo);
+router.put('/:id', verifyToken, checkRole(['administrador']), tipoEquipoController.actualizarTipoEquipo);
 
 /**
  * @route DELETE /api/tipos-equipo/:id
  * @description Elimina un tipo de equipo por su ID. Solo accesible por administradores.
  * @access Private (Admin only)
  */
-router.delete('/:id', protect, authorize('administrador'), tipoEquipoController.eliminarTipoEquipo);
+router.delete('/:id', verifyToken, checkRole(['administrador']), tipoEquipoController.eliminarTipoEquipo);
 
 module.exports = router;
