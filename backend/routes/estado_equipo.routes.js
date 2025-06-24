@@ -15,7 +15,6 @@ const router = express.Router();
  * @description Crea un nuevo estado de equipo. Solo accesible por administradores.
  * @access Private (Admin only)
  */
-// --- CAMBIO AQUÍ: Usa verifyToken y checkRole ---
 router.post('/', verifyToken, checkRole(['administrador']), estadoEquipoController.crearEstadoEquipo);
 
 /**
@@ -23,7 +22,6 @@ router.post('/', verifyToken, checkRole(['administrador']), estadoEquipoControll
  * @description Obtiene todos los estados de equipo. Accesible por todos los usuarios autenticados.
  * @access Private (All authenticated users)
  */
-// --- CAMBIO AQUÍ: Usa verifyToken ---
 router.get('/', verifyToken, estadoEquipoController.obtenerEstadosEquipo);
 
 /**
@@ -31,7 +29,6 @@ router.get('/', verifyToken, estadoEquipoController.obtenerEstadosEquipo);
  * @description Obtiene un estado de equipo por su ID. Accesible por todos los usuarios autenticados.
  * @access Private (All authenticated users)
  */
-// --- CAMBIO AQUÍ: Usa verifyToken ---
 router.get('/:id', verifyToken, estadoEquipoController.obtenerEstadoEquipoPorId);
 
 /**
@@ -39,7 +36,6 @@ router.get('/:id', verifyToken, estadoEquipoController.obtenerEstadoEquipoPorId)
  * @description Actualiza un estado de equipo por su ID. Solo accesible por administradores.
  * @access Private (Admin only)
  */
-// --- CAMBIO AQUÍ: Usa verifyToken y checkRole ---
 router.put('/:id', verifyToken, checkRole(['administrador']), estadoEquipoController.actualizarEstadoEquipo);
 
 /**
@@ -47,7 +43,6 @@ router.put('/:id', verifyToken, checkRole(['administrador']), estadoEquipoContro
  * @description Elimina un estado de equipo por su ID. Solo accesible por administradores.
  * @access Private (Admin only)
  */
-// --- CAMBIO AQUÍ: Usa verifyToken y checkRole ---
 router.delete('/:id', verifyToken, checkRole(['administrador']), estadoEquipoController.eliminarEstadoEquipo);
 
 module.exports = router;

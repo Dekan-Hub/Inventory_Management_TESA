@@ -6,7 +6,6 @@
 
 const app = require('./app'); // Importa la aplicación Express configurada
 const { sequelize, testConnection } = require('./config/db'); // Importa la conexión y función de prueba de DB
-const models = require('./models'); // Importa todos los modelos y sus asociaciones desde models/index
 
 const PORT = process.env.PORT || 3000; // Obtiene el puerto del entorno o usa 3000 por defecto
 
@@ -21,18 +20,12 @@ console.log('Server.js: Iniciando aplicación...');
 const startServer = async () => {
   try {
     console.log('Server.js: Intentando conectar a la base de datos...');
-    // 1. Probar la conexión a la base de datos.
+    // Probar la conexión a la base de datos.
     await testConnection();
-    console.log('Server.js: Conexión a la DB probada. Intentando sincronizar modelos...');
+    console.log('✅ Conexión a la base de datos establecida correctamente.');
 
-    // 2. Sincronizar los modelos de Sequelize con la base de datos.
-    // `force: false` significa que no borrará las tablas si ya existen.
-    // `force: true` BORRA y recrea las tablas (¡ÚSALO SOLO EN DESARROLLO!).
-    // Después de la primera vez, asegúrate de que esté en `false` para no perder datos.
-    await sequelize.sync({ force: false }); // Asegúrate de que esté en 'false' para no borrar las tablas
-    console.log('✅ Modelos sincronizados con la base de datos.');
-
-    // 3. Iniciar el servidor para que escuche en el puerto especificado.
+    // La sincronización de modelos se maneja en app.js.
+    // Aquí solo iniciamos el servidor HTTP de Express.
     const server = app.listen(PORT, () => {
       console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
       console.log(`🔗 URL local: http://localhost:${PORT}`);
@@ -49,6 +42,7 @@ const startServer = async () => {
     });
 
   } catch (error) {
+    // Este catch capturará errores de conexión a la DB o cualquier otro error crítico antes del listen.
     console.error('❌ Server.js: Error crítico al iniciar el servidor:', error);
     process.exit(1); // Termina la aplicación si hay un error crítico al iniciar.
   }

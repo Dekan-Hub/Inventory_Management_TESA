@@ -6,6 +6,8 @@
 const express = require('express');
 const authController = require('../controllers/auth.controller');
 const { verifyToken } = require('../middleware/auth'); // Importa el middleware de verificación de token
+const { loginValidationRules } = require('../middleware/validators/auth.validator'); // Importa las reglas de validación
+const handleValidationErrors = require('../middleware/validators/handleValidation'); // Importa el middleware para manejar errores de validación
 
 const router = express.Router();
 
@@ -14,7 +16,7 @@ const router = express.Router();
  * @description Inicia sesión de un usuario y retorna un token JWT.
  * @access Public
  */
-router.post('/login', authController.login);
+router.post('/login', loginValidationRules(), handleValidationErrors, authController.login);
 
 /**
  * @route GET /api/auth/profile

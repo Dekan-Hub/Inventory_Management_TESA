@@ -6,7 +6,8 @@
 
 const express = require('express');
 const tipoEquipoController = require('../controllers/tipo_equipo.controller');
-const { verifyToken, checkRole } = require('../middleware/auth'); // Esta línea ya estaba bien, importa lo correcto
+const { verifyToken, checkRole } = require('../middleware/auth');
+
 const router = express.Router();
 
 /**

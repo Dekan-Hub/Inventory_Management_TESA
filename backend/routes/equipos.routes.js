@@ -7,6 +7,8 @@
 const express = require('express');
 const equipoController = require('../controllers/equipos.controller');
 const { verifyToken, checkRole } = require('../middleware/auth');
+const { createEquipoValidationRules, updateEquipoValidationRules } = require('../middleware/validators/equipos.validator');
+const handleValidationErrors = require('../middleware/validators/handleValidation');
 
 const router = express.Router();
 
@@ -15,7 +17,7 @@ const router = express.Router();
  * @description Crea un nuevo equipo. Solo accesible por administradores y técnicos.
  * @access Private (Admin, Tecnico)
  */
-router.post('/', verifyToken, checkRole(['administrador', 'tecnico']), equipoController.crearEquipo);
+router.post('/', verifyToken, checkRole(['administrador', 'tecnico']), createEquipoValidationRules(), handleValidationErrors, equipoController.crearEquipo);
 
 /**
  * @route GET /api/equipos
@@ -36,7 +38,7 @@ router.get('/:id', verifyToken, equipoController.obtenerEquipoPorId);
  * @description Actualiza un equipo por su ID. Solo accesible por administradores y técnicos.
  * @access Private (Admin, Tecnico)
  */
-router.put('/:id', verifyToken, checkRole(['administrador', 'tecnico']), equipoController.actualizarEquipo);
+router.put('/:id', verifyToken, checkRole(['administrador', 'tecnico']), updateEquipoValidationRules(), handleValidationErrors, equipoController.actualizarEquipo);
 
 /**
  * @route DELETE /api/equipos/:id

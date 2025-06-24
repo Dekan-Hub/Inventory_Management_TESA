@@ -6,7 +6,9 @@
 
 const express = require('express');
 const solicitudController = require('../controllers/solicitudes.controller');
-const { verifyToken, checkRole } = require('../middleware/auth'); // Corregido: Usar verifyToken y checkRole
+const { verifyToken, checkRole } = require('../middleware/auth');
+const { createSolicitudValidationRules, updateSolicitudStateValidationRules } = require('../middleware/validators/solicitudes.validator');
+const handleValidationErrors = require('../middleware/validators/handleValidation');
 
 const router = express.Router();
 
@@ -15,7 +17,7 @@ const router = express.Router();
  * @description Crea una nueva solicitud de equipo. Accesible por cualquier usuario autenticado.
  * @access Private (All authenticated users)
  */
-router.post('/', verifyToken, solicitudController.crearSolicitud); // Corregido: Usar verifyToken
+router.post('/', verifyToken, createSolicitudValidationRules(), handleValidationErrors, solicitudController.crearSolicitud);
 
 /**
  * @route GET /api/solicitudes
@@ -23,19 +25,16 @@ router.post('/', verifyToken, solicitudController.crearSolicitud); // Corregido:
  * Un usuario normal solo debería ver sus propias solicitudes.
  * @access Private (Admin, Tecnico)
  */
-router.get('/', verifyToken, checkRole(['administrador', 'tecnico']), solicitudController.obtenerSolicitudes); // Corregido: Usar verifyToken y checkRole
+router.get('/', verifyToken, checkRole(['administrador', 'tecnico']), solicitudController.obtenerSolicitudes);
 
 /**
  * @route GET /api/solicitudes/me
  * @description Obtiene las solicitudes del usuario autenticado.
  * @access Private (All authenticated users)
  */
-router.get('/me', verifyToken, async (req, res, next) => { // Corregido: Usar verifyToken
+router.get('/me', verifyToken, async (req, res, next) => {
   try {
-    // Sobreescribe el filtro para que solo vea sus propias solicitudes
-    // Nota: El comentario original usa req.usuario.id, pero tu auth.js adjunta req.user
-    // Por favor, verifica si es req.user.id_usuario o req.user.id según tu token.
-    req.query.usuarioId = req.user.id_usuario || req.user.id; // Ajuste sugerido si usas 'id_usuario' en el token
+    req.query.usuarioId = req.user.id_usuario; // Usar req.user.id_usuario según el payload de tu token
     await solicitudController.obtenerSolicitudes(req, res, next);
   } catch (error) {
     next(error);
@@ -49,20 +48,20 @@ router.get('/me', verifyToken, async (req, res, next) => { // Corregido: Usar ve
  * Un usuario normal solo debería ver sus propias solicitudes por ID.
  * @access Private (Admin, Tecnico)
  */
-router.get('/:id', verifyToken, checkRole(['administrador', 'tecnico']), solicitudController.obtenerSolicitudPorId); // Corregido: Usar verifyToken y checkRole
+router.get('/:id', verifyToken, checkRole(['administrador', 'tecnico']), solicitudController.obtenerSolicitudPorId);
 
 /**
  * @route PUT /api/solicitudes/:id/estado
  * @description Actualiza el estado de una solicitud. Solo accesible por administradores y técnicos.
  * @access Private (Admin, Tecnico)
  */
-router.put('/:id/estado', verifyToken, checkRole(['administrador', 'tecnico']), solicitudController.actualizarEstadoSolicitud); // Corregido: Usar verifyToken y checkRole
+router.put('/:id/estado', verifyToken, checkRole(['administrador', 'tecnico']), updateSolicitudStateValidationRules(), handleValidationErrors, solicitudController.actualizarEstadoSolicitud);
 
 /**
  * @route DELETE /api/solicitudes/:id
  * @description Elimina una solicitud por su ID. Solo accesible por administradores.
  * @access Private (Admin only)
  */
-router.delete('/:id', verifyToken, checkRole(['administrador']), solicitudController.eliminarSolicitud); // Corregido: Usar verifyToken y checkRole
+router.delete('/:id', verifyToken, checkRole(['administrador']), solicitudController.eliminarSolicitud);
 
 module.exports = router;
