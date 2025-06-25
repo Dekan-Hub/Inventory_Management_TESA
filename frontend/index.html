@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inventory App - Gestión de Equipos</title>
+    <!-- Incluye Tailwind CSS CDN para que las clases estén disponibles globalmente.
+         En un proyecto Vite real, esto se manejaría a través de `index.css` y el proceso de construcción.
+         Para este ejemplo, se incluye directamente para asegurar que funcione en el entorno de previsualización. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fuente Inter de Google Fonts para una tipografía moderna y legible -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Define la fuente Inter como predeterminada para todo el cuerpo */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <!-- El elemento div con id="root" es donde la aplicación React será montada. -->
+    <div id="root"></div>
+    <!-- Script principal de la aplicación. `type="module"` es necesario para que Vite maneje los módulos ES. -->
+    <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>
