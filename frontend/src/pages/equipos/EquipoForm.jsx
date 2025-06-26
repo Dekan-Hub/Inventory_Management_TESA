@@ -1,182 +1,89 @@
-// Importa React y hooks esenciales como useState, useEffect.
-import React, { useState, useEffect, useContext } from 'react';
-// Importa las funciones de servicio para crear y actualizar equipos.
-import { createEquipo, updateEquipo } from '../../services/equiposService';
-// Importa los componentes reutilizables Input, Button y Form.
-import Input from '../../components/Input';
-import Button from '../../components/Button';
-import Form from '../../components/Form';
-import { AuthContext } from '../../context/AuthContext'; // Para setGlobalMessage
+import React, { useState } from 'react';
+import Card from '../../components/Card.jsx';
+import Form from '../../components/Form.jsx';
+import Input from '../../components/Input.jsx';
+import Button from '../../components/Button.jsx';
+import equiposService from '../../services/equiposService.js';
 
 /**
- * EquipoForm: Componente de formulario para agregar o editar un equipo.
- * Se puede usar dentro de un modal o como una sección en una página.
- * @param {object} props - Propiedades del componente.
- * @param {object} [props.equipo] - Objeto del equipo actual (si es para editar) o un objeto inicial vacío (si es para agregar).
- * @param {string} props.modalType - El tipo de operación del formulario ('add' para agregar, 'edit' para editar).
- * @param {function} props.onSave - Función de callback que se ejecuta después de guardar (con éxito o error).
- * @param {function} props.onCancel - Función de callback para cancelar la operación.
+ * EquipoForm: Componente de formulario para registrar o editar un equipo.
  */
-const EquipoForm = ({ equipo, modalType, onSave, onCancel }) => {
-    // Estado para almacenar los datos del formulario del equipo.
-    // Se inicializa con los datos del `equipo` pasado por props o valores por defecto.
-    const [formData, setFormData] = useState(equipo || {
-        nombre: '',
-        categoria: '',
-        stock: 0,
-        precio: 0,
-        estado: 'Disponible'
-    });
-    // Estado para controlar el estado de carga durante el proceso de guardado/actualización.
-    const [isLoading, setIsLoading] = useState(false);
-    // Estado para almacenar los errores de validación por campo.
-    const [errors, setErrors] = useState({});
-    // Acceso al sistema de mensajes globales del AuthContext.
-    const { setGlobalMessage } = useContext(AuthContext);
+const EquipoForm = () => {
+  const [formData, setFormData] = useState({
+    nombre: '',
+    marca: '',
+    modelo: '',
+    numero_serie: '',
+    tipo_equipo_id: '',
+    estado_id: '',
+    ubicacion_id: '',
+    usuario_asignado_id: '',
+    fecha_adquisicion: '',
+    observaciones: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [isError, setIsError] = useState(false);
 
-    // `useEffect` para actualizar `formData` y limpiar errores si la prop `equipo` o `modalType` cambian.
-    // Esto es crucial para resetear el formulario cuando se abre para un nuevo equipo
-    // o para editar uno diferente sin que los datos del modal anterior persistan.
-    useEffect(() => {
-        setFormData(equipo || { nombre: '', categoria: '', stock: 0, precio: 0, estado: 'Disponible' });
-        setErrors({}); // Limpia errores al cambiar el equipo o el tipo de modal.
-    }, [equipo, modalType]);
+  const handleChange = (e) => {
+    const { id, value } = e.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [id]: value,
+    }));
+  };
 
-    /**
-     * `validateForm`: Valida los campos del formulario.
-     * @returns {boolean} True si el formulario es válido, false en caso contrario.
-     */
-    const validateForm = () => {
-        let newErrors = {};
-        if (!formData.nombre) newErrors.nombre = 'El nombre del equipo es requerido.';
-        if (!formData.categoria) newErrors.categoria = 'La categoría es requerida.';
-        if (formData.stock < 0) newErrors.stock = 'El stock no puede ser negativo.';
-        if (formData.precio < 0) newErrors.precio = 'El precio no puede ser negativo.';
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+    setIsError(false);
 
-        setErrors(newErrors); // Actualiza el estado de errores.
-        return Object.keys(newErrors).length === 0; // Retorna true si no hay errores.
-    };
+    try {
+      await equiposService.create(formData);
+      setMessage('Equipo registrado exitosamente.');
+      setFormData({ // Limpia el formulario
+        nombre: '', marca: '', modelo: '', numero_serie: '', tipo_equipo_id: '',
+        estado_id: '', ubicacion_id: '', usuario_asignado_id: '', fecha_adquisicion: '', observaciones: ''
+      });
+    } catch (err) {
+      setMessage('Error al registrar equipo: ' + err.message);
+      setIsError(true);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    /**
-     * `handleChange`: Maneja los cambios en los campos de entrada del formulario.
-     * Actualiza el estado `formData` con los nuevos valores y limpia errores del campo.
-     * @param {object} e - Evento de cambio del input.
-     */
-    const handleChange = (e) => {
-        const { id, value } = e.target;
-        // Actualiza el estado `formData` inmutablemente.
-        setFormData(prev => ({
-            ...prev,
-            // Convierte a número si el campo es 'stock' o 'precio', de lo contrario, guarda como string.
-            [id]: id === 'stock' || id === 'precio' ? parseFloat(value) || 0 : value
-        }));
-        // Limpia el error del campo específico cuando el usuario empieza a escribir.
-        if (errors[id]) {
-            setErrors(prev => ({ ...prev, [id]: undefined }));
-        }
-    };
+  return (
+    <Card>
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">Formulario de Equipo</h3>
+      <Form onSubmit={handleSubmit}>
+        <Input label="Nombre" id="nombre" value={formData.nombre} onChange={handleChange} required />
+        <Input label="Marca" id="marca" value={formData.marca} onChange={handleChange} required />
+        <Input label="Modelo" id="modelo" value={formData.modelo} onChange={handleChange} required />
+        <Input label="Número de Serie" id="numero_serie" value={formData.numero_serie} onChange={handleChange} required />
+        <Input label="ID Tipo de Equipo" id="tipo_equipo_id" value={formData.tipo_equipo_id} onChange={handleChange} />
+        <Input label="ID Estado" id="estado_id" value={formData.estado_id} onChange={handleChange} />
+        <Input label="ID Ubicación" id="ubicacion_id" value={formData.ubicacion_id} onChange={handleChange} />
+        <Input label="ID Usuario Asignado" id="usuario_asignado_id" value={formData.usuario_asignado_id} onChange={handleChange} />
+        <Input label="Fecha de Adquisición" id="fecha_adquisicion" type="date" value={formData.fecha_adquisicion} onChange={handleChange} />
+        <Input label="Observaciones" id="observaciones" value={formData.observaciones} onChange={handleChange} />
 
-    /**
-     * `handleSubmit`: Maneja el envío del formulario.
-     * Llama a la función de servicio apropiada (crear o actualizar) y gestiona los callbacks.
-     */
-    const handleSubmit = async (e) => {
-        e.preventDefault(); // Previene la recarga de la página.
-        if (!validateForm()) return; // Si la validación falla, no procede.
+        {message && (
+          <p className={`text-center ${isError ? 'text-red-500' : 'text-green-500'}`}>{message}</p>
+        )}
 
-        setIsLoading(true); // Activa el estado de carga.
-        try {
-            if (modalType === 'add') {
-                await createEquipo(formData); // Si es un nuevo equipo, llama a `createEquipo`.
-                onSave(true, 'Equipo agregado exitosamente.'); // Llama al callback de éxito.
-            } else {
-                await updateEquipo(formData._id, formData); // Si es un equipo existente, llama a `updateEquipo` con el ID.
-                onSave(true, 'Equipo actualizado exitosamente.'); // Llama al callback de éxito.
-            }
-        } catch (error) {
-            console.error('Error saving equipo:', error);
-            const apiErrorMessage = error.response?.data?.message || error.message || 'Error desconocido';
-            setGlobalMessage({ message: `Error al guardar equipo: ${apiErrorMessage}`, type: 'error' });
-            onSave(false, `Error al guardar equipo: ${apiErrorMessage}`); // Pasa el error al callback principal.
-        } finally {
-            setIsLoading(false); // Desactiva el estado de carga al finalizar.
-        }
-    };
-
-    return (
-        // El componente `Form` proporciona el `onSubmit` y la gestión del `disabled`.
-        // El `className="shadow-none p-0"` se usa porque este formulario estará dentro de un modal,
-        // y el modal ya provee su propio estilo de sombra y padding.
-        <Form onSubmit={handleSubmit} disabled={isLoading} className="shadow-none p-0">
-            {/* Componentes Input para cada campo del equipo. */}
-            <Input
-                label="Nombre del Equipo"
-                id="nombre"
-                type="text"
-                value={formData.nombre}
-                onChange={handleChange}
-                error={errors.nombre}
-                required
-                disabled={isLoading}
-            />
-            <Input
-                label="Categoría del Equipo"
-                id="categoria"
-                type="text"
-                value={formData.categoria}
-                onChange={handleChange}
-                error={errors.categoria}
-                required
-                disabled={isLoading}
-            />
-            <Input
-                label="Stock"
-                id="stock"
-                type="number"
-                value={formData.stock}
-                onChange={handleChange}
-                error={errors.stock}
-                disabled={isLoading}
-            />
-            <Input
-                label="Precio"
-                id="precio"
-                type="number"
-                step="0.01" // Permite valores decimales.
-                value={formData.precio}
-                onChange={handleChange}
-                error={errors.precio}
-                disabled={isLoading}
-            />
-            {/* Select para el estado del equipo. */}
-            <div>
-                <label htmlFor="estado" className="block text-gray-700 text-sm font-semibold mb-2">Estado</label>
-                <select
-                    id="estado"
-                    value={formData.estado}
-                    onChange={handleChange}
-                    disabled={isLoading}
-                    className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
-                >
-                    <option value="Disponible">Disponible</option>
-                    <option value="Bajo Stock">Bajo Stock</option>
-                    <option value="Agotado">Agotado</option>
-                </select>
-            </div>
-
-            {/* Contenedor de los botones de acción. */}
-            <div className="flex justify-end space-x-4 mt-8">
-                {/* Botón para cancelar y cerrar el modal. */}
-                <Button onClick={onCancel} disabled={isLoading} variant="secondary">
-                    Cancelar
-                </Button>
-                {/* Botón para enviar el formulario y guardar el equipo. */}
-                <Button type="submit" isLoading={isLoading} variant="primary">
-                    {isLoading ? 'Guardando...' : 'Guardar'} {/* Texto dinámico según el estado de carga. */}
-                </Button>
-            </div>
-        </Form>
-    );
+        <Button
+          type="submit"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white transform hover:scale-105"
+          disabled={loading}
+        >
+          {loading ? 'Guardando...' : 'Guardar Equipo'}
+        </Button>
+      </Form>
+    </Card>
+  );
 };
 
 export default EquipoForm;

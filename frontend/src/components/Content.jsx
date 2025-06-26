@@ -1,20 +1,13 @@
 import React from 'react';
 
-/**
- * Content: Componente contenedor principal para el contenido de las páginas.
- * Proporciona un padding consistente y un color de fondo base para el área de contenido.
- * @param {object} props - Propiedades del componente.
- * @param {React.ReactNode} props.children - Los elementos hijos que se renderizarán dentro del contenedor.
- */
-const Content = ({ children }) => {
-    return (
-        // Contenedor principal del contenido.
-        // Clases de Tailwind: padding uniforme, fondo gris claro, ocupa el espacio restante (flex-1),
-        // permite desplazamiento vertical si el contenido excede la altura.
-        <div className="p-6 bg-gray-100 flex-1 overflow-y-auto font-inter">
-            {children} {/* Renderiza los elementos hijos. */}
-        </div>
-    );
+// El componente Content es un simple contenedor visual para el contenido principal.
+// NO debe contener lógica de ruteo ni importar páginas directamente.
+const Content = ({ children, className = '', ...props }) => {
+  return (
+    <main className={`flex-grow p-6 bg-gray-50 ${className}`} {...props}>
+      {children} {/* Aquí se renderizará el contenido de la página actual que le pase App.jsx */}
+    </main>
+  );
 };
 
 export default Content;

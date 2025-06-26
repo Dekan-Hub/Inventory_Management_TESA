@@ -1,61 +1,64 @@
-import api from './api'; // Importa la instancia de Axios configurada.
+import api from './api';
 
-/**
- * getUsuarios: Obtiene la lista completa de usuarios desde el backend.
- * @returns {Promise<Array>} Una promesa que resuelve con un array de objetos usuario.
- * @throws {Error} Lanza un error si la solicitud falla.
- */
-export const getUsuarios = async () => {
-  try {
-    const response = await api.get('/usuarios');
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || new Error('Error al obtener usuarios.');
-  }
+const usuariosService = {
+  // Obtener todos los usuarios
+  getAll: async () => {
+    // Asume que tu backend tiene un endpoint GET /api/users que devuelve una lista de usuarios
+    // Ejemplo de respuesta esperada: { success: true, data: [{ id: 1, name: "...", correo: "...", rol: "..." }] }
+    try {
+      const response = await api('/users');
+      // Si tu API devuelve un objeto con una propiedad 'data' que contiene el array de usuarios
+      return response.data || [];
+    } catch (error) {
+      console.error("Error al obtener usuarios:", error);
+      throw error; // Propaga el error para que el componente que llama pueda manejarlo
+    }
+  },
+  // Obtener un usuario por ID
+  getById: async (id) => {
+    // Asume un endpoint GET /api/users/{id}
+    try {
+      const response = await api(`/users/${id}`);
+      return response.data; // Devuelve el objeto de usuario directamente
+    } catch (error) {
+      console.error(`Error al obtener usuario con ID ${id}:`, error);
+      throw error;
+    }
+  },
+  // Crear un nuevo usuario
+  create: async (userData) => {
+    // Asume un endpoint POST /api/users que recibe un objeto de usuario
+    // Ejemplo de userData: { name: "Nuevo Usuario", correo: "nuevo@example.com", password: "password123", rol: "usuario" }
+    try {
+      const response = await api('/users', 'POST', userData);
+      return response; // Devuelve la respuesta completa del backend (ej. { success: true, message: "..." })
+    } catch (error) {
+      console.error("Error al crear usuario:", error);
+      throw error;
+    }
+  },
+  // Actualizar un usuario existente
+  update: async (id, userData) => {
+    // Asume un endpoint PUT /api/users/{id} que recibe un objeto de usuario con los campos a actualizar
+    try {
+      const response = await api(`/users/${id}`, 'PUT', userData);
+      return response;
+    } catch (error) {
+      console.error(`Error al actualizar usuario con ID ${id}:`, error);
+      throw error;
+    }
+  },
+  // Eliminar un usuario
+  remove: async (id) => {
+    // Asume un endpoint DELETE /api/users/{id}
+    try {
+      const response = await api(`/users/${id}`, 'DELETE');
+      return response;
+    } catch (error) {
+      console.error(`Error al eliminar usuario con ID ${id}:`, error);
+      throw error;
+    }
+  },
 };
 
-/**
- * createUsuario: Crea un nuevo usuario en el backend.
- * @param {object} userData - Objeto con los datos del nuevo usuario.
- * @returns {Promise<object>} Una promesa que resuelve con el usuario creado.
- * @throws {Error} Lanza un error si la solicitud falla.
- */
-export const createUsuario = async (userData) => {
-  try {
-    const response = await api.post('/usuarios', userData);
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || new Error('Error al crear usuario.');
-  }
-};
-
-/**
- * updateUsuario: Actualiza un usuario existente en el backend.
- * @param {string} id - El ID del usuario a actualizar.
- * @param {object} userData - Objeto con los datos actualizados del usuario.
- * @returns {Promise<object>} Una promesa que resuelve con el usuario actualizado.
- * @throws {Error} Lanza un error si la solicitud falla.
- */
-export const updateUsuario = async (id, userData) => {
-  try {
-    const response = await api.put(`/usuarios/${id}`, userData);
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || new Error('Error al actualizar usuario.');
-  }
-};
-
-/**
- * deleteUsuario: Elimina un usuario del backend.
- * @param {string} id - El ID del usuario a eliminar.
- * @returns {Promise<object>} Una promesa que resuelve con la respuesta de éxito de la eliminación.
- * @throws {Error} Lanza un error si la solicitud falla.
- */
-export const deleteUsuario = async (id) => {
-  try {
-    const response = await api.delete(`/usuarios/${id}`);
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || new Error('Error al eliminar usuario.');
-  }
-};
+export default usuariosService;

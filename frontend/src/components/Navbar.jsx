@@ -1,38 +1,31 @@
-import React, { useContext } from 'react'; // Importa React y useContext para usar el AuthContext.
-import { AuthContext } from '../context/AuthContext'; // Importa el AuthContext.
-import Button from './Button'; // Importa el componente Button reutilizable.
+import React from 'react';
+import { useAuth } from '../context/AuthContext.jsx'; // Correcto: Importamos el hook 'useAuth'
+import { useAppContext } from '../context/AppContext.jsx';
+import Button from './Button.jsx';
 
-/**
- * Navbar: Componente de la barra de navegación superior.
- * Muestra el nombre del usuario logueado y un botón para cerrar sesión.
- * @param {object} props - Propiedades del componente.
- * @param {object} props.user - Objeto con la información del usuario logueado (ej. { username: '...' }).
- */
-const Navbar = ({ user }) => {
-    // Obtiene la función `logout` del AuthContext.
-    const { logout } = useContext(AuthContext);
+const Navbar = ({ className = '', ...props }) => {
+  const { user, logout } = useAuth(); // Usamos el hook 'useAuth' para obtener 'user' y 'logout'
+  const { setCurrentPage } = useAppContext();
 
-    return (
-        // Contenedor principal de la barra de navegación.
-        // Clases de Tailwind: fondo blanco, padding, sombra, flexbox para alinear elementos, bordes redondeados.
-        <div className="bg-white p-4 shadow-md flex justify-between items-center rounded-lg font-inter">
-            {/* Sección de bienvenida al usuario. */}
-            <div className="text-xl font-semibold text-gray-800">
-                Bienvenido, <span className="text-blue-600">{user?.username || 'Invitado'}</span>!
-            </div>
-            {/* Sección de acciones (cerrar sesión). */}
-            <div>
-                {/* Botón de cerrar sesión. Al hacer clic, llama a la función `logout` del contexto. */}
-                <Button
-                    onClick={logout}
-                    variant="secondary"
-                    className="px-4 py-2 text-md" // Estilos específicos para el botón de logout.
-                >
-                    Cerrar Sesión
-                </Button>
-            </div>
-        </div>
-    );
+  const handleLogout = () => {
+    logout();
+    setCurrentPage('login'); // Redirige al login después de cerrar sesión
+  };
+
+  return (
+    <header className={`bg-white shadow-sm p-4 flex justify-between items-center border-b border-gray-200 ${className}`} {...props}>
+      <h1 className="text-2xl font-bold text-gray-800">Sistema de Gestión</h1>
+      <div className="flex items-center space-x-4">
+        <span className="text-gray-700">Bienvenido, {user?.name || 'Usuario'}!</span>
+        <Button
+          onClick={handleLogout}
+          className="bg-red-500 hover:bg-red-600 text-white shadow"
+        >
+          Cerrar Sesión
+        </Button>
+      </div>
+    </header>
+  );
 };
 
 export default Navbar;

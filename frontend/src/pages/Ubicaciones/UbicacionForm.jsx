@@ -3,18 +3,17 @@ import Card from '../../components/Card.jsx';
 import Form from '../../components/Form.jsx';
 import Input from '../../components/Input.jsx';
 import Button from '../../components/Button.jsx';
-import mantenimientosService from '../../services/mantenimientosService.js';
+import ubicacionesService from '../../services/ubicacionesService.js';
 
 /**
- * MantenimientoForm: Componente de formulario para registrar un mantenimiento.
+ * UbicacionForm: Componente de formulario para registrar o editar una ubicación.
  */
-const MantenimientoForm = () => {
+const UbicacionForm = () => {
   const [formData, setFormData] = useState({
-    equipo_id: '',
-    ubicacion_id: '',
-    responsable_id: '',
-    fecha: '',
-    descripcion: ''
+    edificio: '',
+    sala: '',
+    descripcion: '',
+    tecnico_id: '',
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -35,13 +34,13 @@ const MantenimientoForm = () => {
     setIsError(false);
 
     try {
-      await mantenimientosService.create(formData);
-      setMessage('Mantenimiento registrado exitosamente.');
+      await ubicacionesService.create(formData);
+      setMessage('Ubicación registrada exitosamente.');
       setFormData({ // Limpia el formulario
-        equipo_id: '', ubicacion_id: '', responsable_id: '', fecha: '', descripcion: ''
+        edificio: '', sala: '', descripcion: '', tecnico_id: ''
       });
     } catch (err) {
-      setMessage('Error al registrar mantenimiento: ' + err.message);
+      setMessage('Error al registrar ubicación: ' + err.message);
       setIsError(true);
       console.error(err);
     } finally {
@@ -51,13 +50,12 @@ const MantenimientoForm = () => {
 
   return (
     <Card>
-      <h3 className="text-xl font-semibold text-gray-800 mb-4">Formulario de Mantenimiento</h3>
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">Formulario de Ubicación</h3>
       <Form onSubmit={handleSubmit}>
-        <Input label="ID Equipo" id="equipo_id" value={formData.equipo_id} onChange={handleChange} required />
-        <Input label="ID Ubicación" id="ubicacion_id" value={formData.ubicacion_id} onChange={handleChange} required />
-        <Input label="ID Responsable" id="responsable_id" value={formData.responsable_id} onChange={handleChange} required />
-        <Input label="Fecha" id="fecha" type="date" value={formData.fecha} onChange={handleChange} required />
+        <Input label="Edificio" id="edificio" value={formData.edificio} onChange={handleChange} required />
+        <Input label="Sala" id="sala" value={formData.sala} onChange={handleChange} required />
         <Input label="Descripción" id="descripcion" value={formData.descripcion} onChange={handleChange} />
+        <Input label="ID Técnico Responsable" id="tecnico_id" value={formData.tecnico_id} onChange={handleChange} />
 
         {message && (
           <p className={`text-center ${isError ? 'text-red-500' : 'text-green-500'}`}>{message}</p>
@@ -68,11 +66,11 @@ const MantenimientoForm = () => {
           className="w-full bg-blue-600 hover:bg-blue-700 text-white transform hover:scale-105"
           disabled={loading}
         >
-          {loading ? 'Guardando...' : 'Registrar Mantenimiento'}
+          {loading ? 'Guardando...' : 'Guardar Ubicación'}
         </Button>
       </Form>
     </Card>
   );
 };
 
-export default MantenimientoForm;
+export default UbicacionForm;

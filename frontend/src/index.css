@@ -1,11 +1,11 @@
-/* Directivas de Tailwind CSS para incluir sus estilos base, componentes y utilidades. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Estilos personalizados si son necesarios, pueden anular o extender los de Tailwind. */
-/* Por ejemplo, para definir la fuente Inter para toda la aplicación si no se hace en index.html */
+/* Estilos personalizados si es necesario */
 body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
   font-family: 'Inter', sans-serif;
-  @apply bg-gray-100 text-gray-800; /* Aplica un fondo gris claro y texto oscuro por defecto */
 }

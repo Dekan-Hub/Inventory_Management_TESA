@@ -1,23 +1,21 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  // Configura los archivos que Tailwind CSS escaneará para detectar clases CSS.
-  // Esto asegura que solo las clases que realmente uses se incluyan en el CSS final,
-  // optimizando el tamaño del archivo.
   content: [
-    "./index.html", // Archivo HTML principal.
-    "./src/**/*.{js,ts,jsx,tsx}", // Todos los archivos JS, TS, JSX, TSX dentro de `src`.
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  // Personaliza o extiende el tema predeterminado de Tailwind CSS.
   theme: {
     extend: {
-      // Define una familia de fuentes personalizada 'Inter' para usar en la aplicación.
-      // Se asume que 'Inter' será importada a través de Google Fonts o similar en `index.html` o `index.css`.
-      fontFamily: {
-        inter: ['Inter', 'sans-serif'],
+      colors: {
+        // Colores institucionales de TesaApp (puedes ajustarlos a tus valores HEX exactos)
+        'tesa-accent': '#5A1B8C', // Púrpura oscuro, similar al logo
+        'tesa-text': '#333333',   // Un gris oscuro para el texto principal
+        // Añadir el blue-600 que se usaba para algunos elementos si no estaba explícito
+        'blue-600': '#2563EB', // Un azul estándar de Tailwind, si quieres usarlo como tu "azul institucional"
+        // Si tu logo tiene un dorado específico, podrías añadirlo aquí también:
+        // 'tesa-gold': '#FFD700', // Ejemplo de color dorado
       },
-      // Puedes añadir aquí colores personalizados, tamaños de espacio, etc.
     },
   },
-  // Plugins de Tailwind CSS (actualmente ninguno, pero se pueden añadir aquí si es necesario).
   plugins: [],
 }

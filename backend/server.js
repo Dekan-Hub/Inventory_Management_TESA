@@ -6,7 +6,6 @@
 
 const app = require('./app'); // Importa la aplicación Express configurada
 const { sequelize, testConnection } = require('./config/db'); // Importa la conexión y función de prueba de DB
-
 const PORT = process.env.PORT || 3000; // Obtiene el puerto del entorno o usa 3000 por defecto
 
 console.log('Server.js: Iniciando aplicación...');

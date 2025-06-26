@@ -1,131 +1,81 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { createSolicitud, updateSolicitud } from '../../services/solicitudesService';
-import Input from '../../components/Input';
-import Button from '../../components/Button';
-import Form from '../../components/Form';
-import { AuthContext } from '../../context/AuthContext';
+import React, { useState } from 'react';
+import Card from '../../components/Card.jsx';
+import Form from '../../components/Form.jsx';
+import Input from '../../components/Input.jsx';
+import Button from '../../components/Button.jsx';
+import solicitudesService from '../../services/solicitudesService.js';
 
 /**
- * SolicitudForm: Componente de formulario para crear o editar una solicitud.
- * @param {object} props - Propiedades del componente.
- * @param {object} [props.solicitud] - Objeto de la solicitud actual (para editar) o inicial vacío (para agregar).
- * @param {string} props.modalType - Tipo de operación ('add' o 'edit').
- * @param {function} props.onSave - Callback al guardar la solicitud.
- * @param {function} props.onCancel - Callback al cancelar.
+ * SolicitudForm: Componente de formulario para crear una nueva solicitud de equipo.
  */
-const SolicitudForm = ({ solicitud, modalType, onSave, onCancel }) => {
-    const [formData, setFormData] = useState(solicitud || {
-        usuario: '',
-        equipo: '',
-        motivo: '',
-        estado: 'Pendiente'
-    });
-    const [isLoading, setIsLoading] = useState(false);
-    const [errors, setErrors] = useState({});
-    const { setGlobalMessage } = useContext(AuthContext);
+const SolicitudForm = () => {
+  const [formData, setFormData] = useState({
+    usuario_id: '',
+    equipo_id: '',
+    motivo: '',
+    estado: 'Pendiente', // Estado inicial por defecto
+    fecha_solicitud: new Date().toISOString().split('T')[0], // Fecha actual
+    admin_id: '', // Podría ser nulo inicialmente
+    fecha_respuesta: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [isError, setIsError] = useState(false);
 
-    useEffect(() => {
-        setFormData(solicitud || { usuario: '', equipo: '', motivo: '', estado: 'Pendiente' });
-        setErrors({});
-    }, [solicitud, modalType]);
+  const handleChange = (e) => {
+    const { id, value } = e.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [id]: value,
+    }));
+  };
 
-    const validateForm = () => {
-        let newErrors = {};
-        if (!formData.usuario) newErrors.usuario = 'El nombre de usuario es requerido.';
-        if (!formData.equipo) newErrors.equipo = 'El nombre del equipo es requerido.';
-        if (!formData.motivo) newErrors.motivo = 'El motivo de la solicitud es requerido.';
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+    setIsError(false);
 
-    const handleChange = (e) => {
-        const { id, value } = e.target;
-        setFormData(prev => ({ ...prev, [id]: value }));
-        if (errors[id]) {
-            setErrors(prev => ({ ...prev, [id]: undefined }));
-        }
-    };
+    try {
+      await solicitudesService.create(formData);
+      setMessage('Solicitud enviada exitosamente.');
+      setFormData({ // Limpia el formulario
+        usuario_id: '', equipo_id: '', motivo: '', estado: 'Pendiente',
+        fecha_solicitud: new Date().toISOString().split('T')[0], admin_id: '', fecha_respuesta: ''
+      });
+    } catch (err) {
+      setMessage('Error al enviar solicitud: ' + err.message);
+      setIsError(true);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!validateForm()) return;
+  return (
+    <Card>
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">Formulario de Solicitud</h3>
+      <Form onSubmit={handleSubmit}>
+        <Input label="ID Usuario Solicitante" id="usuario_id" value={formData.usuario_id} onChange={handleChange} required />
+        <Input label="ID Equipo (si aplica)" id="equipo_id" value={formData.equipo_id} onChange={handleChange} />
+        <Input label="Motivo de Solicitud" id="motivo" value={formData.motivo} onChange={handleChange} required />
+        {/* El estado y fechas de respuesta/admin_id pueden ser gestionados por el admin */}
+        <Input label="Fecha de Solicitud" id="fecha_solicitud" type="date" value={formData.fecha_solicitud} onChange={handleChange} disabled />
 
-        setIsLoading(true);
-        try {
-            if (modalType === 'add') {
-                await createSolicitud(formData);
-                onSave(true, 'Solicitud agregada exitosamente.');
-            } else {
-                await updateSolicitud(formData._id, formData);
-                onSave(true, 'Solicitud actualizada exitosamente.');
-            }
-        } catch (error) {
-            console.error('Error saving solicitud:', error);
-            const apiErrorMessage = error.response?.data?.message || error.message || 'Error desconocido';
-            setGlobalMessage({ message: `Error al guardar solicitud: ${apiErrorMessage}`, type: 'error' });
-            onSave(false, `Error al guardar solicitud: ${apiErrorMessage}`);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+        {message && (
+          <p className={`text-center ${isError ? 'text-red-500' : 'text-green-500'}`}>{message}</p>
+        )}
 
-    return (
-        <Form onSubmit={handleSubmit} disabled={isLoading} className="shadow-none p-0">
-            <Input
-                label="Usuario Solicitante"
-                id="usuario"
-                type="text"
-                value={formData.usuario}
-                onChange={handleChange}
-                error={errors.usuario}
-                required
-                disabled={isLoading}
-            />
-            <Input
-                label="Equipo Solicitado"
-                id="equipo"
-                type="text"
-                value={formData.equipo}
-                onChange={handleChange}
-                error={errors.equipo}
-                required
-                disabled={isLoading}
-            />
-            <Input
-                label="Motivo de la Solicitud"
-                id="motivo"
-                type="text"
-                value={formData.motivo}
-                onChange={handleChange}
-                error={errors.motivo}
-                required
-                disabled={isLoading}
-            />
-            <div>
-                <label htmlFor="estado" className="block text-gray-700 text-sm font-semibold mb-2">Estado</label>
-                <select
-                    id="estado"
-                    value={formData.estado}
-                    onChange={handleChange}
-                    disabled={isLoading || modalType === 'add'} // El estado solo se puede cambiar en edición
-                    className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
-                >
-                    <option value="Pendiente">Pendiente</option>
-                    <option value="Aprobada">Aprobada</option>
-                    <option value="Rechazada">Rechazada</option>
-                </select>
-            </div>
-
-            <div className="flex justify-end space-x-4 mt-8">
-                <Button onClick={onCancel} disabled={isLoading} variant="secondary">
-                    Cancelar
-                </Button>
-                <Button type="submit" isLoading={isLoading} variant="primary">
-                    {isLoading ? 'Guardando...' : 'Guardar'}
-                </Button>
-            </div>
-        </Form>
-    );
+        <Button
+          type="submit"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white transform hover:scale-105"
+          disabled={loading}
+        >
+          {loading ? 'Enviando...' : 'Enviar Solicitud'}
+        </Button>
+      </Form>
+    </Card>
+  );
 };
 
 export default SolicitudForm;

@@ -1,51 +1,59 @@
-import axios from 'axios';
-// Conexion con la url del backend para las apis correspondientes
-const API_BASE_URL = 'http://localhost:3000/api';
+// Configuración base de la API
+// *** Esto YA debería estar apuntando a tu backend en puerto 3000 ***
+const API_BASE_URL = 'http://localhost:3000/api/auth/login'; 
 
-// Crea una instancia de Axios con la URL base y cabeceras predeterminadas.
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json', // Tipo de contenido predeterminado para las peticiones.
-  },
-});
+/**
+ * fetchApi: Función auxiliar para realizar peticiones HTTP a tu backend.
+ * @param {string} endpoint - La parte del URL después de API_BASE_URL (ej. '/login', '/users').
+ * @param {string} method - El método HTTP (GET, POST, PUT, DELETE).
+ * @param {object} data - El cuerpo de la solicitud para POST/PUT.
+ * @returns {Promise<object>} - Una promesa que resuelve con los datos JSON de la respuesta.
+ * @throws {Error} - Lanza un error si la solicitud no es exitosa o la respuesta no es JSON.
+ */
+const fetchApi = async (endpoint, method = 'GET', data = null) => {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const options = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      // Si tu backend usa tokens de sesión o JWT, los enviarías aquí:
+      // 'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+    },
+    body: data ? JSON.stringify(data) : null,
+  };
 
-// Interceptor de solicitud de Axios.
-// Se ejecuta ANTES de que se envíe cada solicitud HTTP desde la aplicación.
-api.interceptors.request.use(
-  (config) => {
-    // Intenta obtener el token de autenticación del localStorage.
-    const token = localStorage.getItem('token');
-    // Si existe un token, lo añade a la cabecera 'Authorization' de la solicitud.
-    // Esto es crucial para proteger las rutas del backend que requieren autenticación.
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`; // Formato Bearer Token estándar.
+  console.log(`[API Request] ${method} ${url}`, { data });
+
+  try {
+    const response = await fetch(url, options);
+    console.log(`[API Response] Status: ${response.status} for ${method} ${url}`);
+
+    const text = await response.text();
+    console.log(`[API Raw Text] for ${endpoint}:`, text);
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = text ? JSON.parse(text) : { message: `Error ${response.status}: ${response.statusText} (Respuesta vacía o no JSON)` };
+      } catch (parseError) {
+        errorData = { message: `Error ${response.status}: ${response.statusText}. Respuesta no JSON: ${text}` };
+        console.error(`[API Parse Error] No se pudo parsear el texto de error como JSON para ${endpoint}:`, parseError);
+      }
+      throw new Error(errorData.message || `Error desconocido en la solicitud a ${url}`);
     }
-    return config; // Retorna la configuración modificada.
-  },
-  (error) => {
-    // Si hay un error antes de enviar la solicitud (ej. error de red), lo rechaza.
-    return Promise.reject(error);
-  }
-);
 
-// Interceptor de respuesta de Axios.
-// Se ejecuta DESPUÉS de que se recibe una respuesta del backend.
-api.interceptors.response.use(
-  (response) => response, // Si la respuesta es exitosa, simplemente la retorna.
-  (error) => {
-    // Maneja los errores de respuesta.
-    // Si el error tiene una respuesta y el código de estado es 401 (No autorizado).
-    if (error.response && error.response.status === 401) {
-      // Esto significa que el token es inválido o ha expirado.
-      // Limpia el token y la información del usuario del localStorage.
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      
-    // Rechaza la promesa del error para que sea manejado por el bloque `catch`
-    // en el código que realizó la llamada a la API.
-    return Promise.reject(error);
-  }
-);
+    try {
+      return text ? JSON.parse(text) : {};
+    } catch (parseError) {
+      console.error(`[API Parse Error] Error al parsear JSON de respuesta exitosa para ${endpoint}:`, parseError, `Texto recibido: "${text}"`);
+      throw new Error(`Respuesta inválida del servidor: el contenido no es JSON para ${endpoint}.`);
+    }
 
-export default api; // Exporta la instancia configurada de Axios.
+  } catch (error) {
+    console.error(`[API General Error] Error en la llamada a la API ${endpoint}:`, error);
+    throw error;
+  }
+};
+
+export default fetchApi;

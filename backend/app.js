@@ -21,6 +21,13 @@ dotenv.config();
 
 const app = express();
 
+app.use(cors({
+  origin: 'http://localhost:5173', // <--- ¡CRÍTICO! Este es el ORIGEN de tu frontend Vite
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Métodos HTTP que permites
+  allowedHeaders: ['Content-Type', 'Authorization'], // Encabezados que permites enviar desde el cliente
+  credentials: true // Permite el envío de cookies/encabezados de autorización
+}));
+
 // Middlewares
 app.use(express.json()); // Para parsear cuerpos de petición en JSON
 app.use(cors()); // Habilita CORS para todas las solicitudes
@@ -51,6 +58,7 @@ const movimientoRoutes = require('./routes/movimientos.routes');
 const solicitudRoutes = require('./routes/solicitudes.routes');
 const alertaRoutes = require('./routes/alertas.routes');
 const reporteRoutes = require('./routes/reportes.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 
 // --- Define las rutas base para cada conjunto de endpoints ---
 app.use('/api/auth', authRoutes);
@@ -64,7 +72,7 @@ app.use('/api/movimientos', movimientoRoutes);
 app.use('/api/solicitudes', solicitudRoutes);
 app.use('/api/alertas', alertaRoutes);
 app.use('/api/reportes', reporteRoutes);
-
+app.use('/api', dashboardRoutes);
 // --- Ruta de Prueba / Raíz de la API ---
 app.get('/', (req, res) => {
   res.send('API de Gestión de Inventario de Equipos funcionando!');

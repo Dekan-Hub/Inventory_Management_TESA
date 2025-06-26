@@ -1,114 +1,130 @@
-import React, { useState, useContext } from 'react';
-import { generateReport } from '../../services/reportesService';
-import Button from '../../components/Button';
-import Header from '../../components/Header';
-import Card from '../../components/Card';
-import Input from '../../components/Input';
-import Form from '../../components/Form';
-import Loader from '../../components/Loader';
-import { AuthContext } from '../../context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import Card from '../../components/Card.jsx';
+import Button from '../../components/Button.jsx';
+import Loader from '../../components/Loader.jsx';
+import reportesService from '../../services/reportesService.js';
 
 /**
- * ReportesDashboard: Componente de la página para generar y exportar reportes.
+ * ReportesDashboard: Componente para la interfaz de generación de reportes.
+ * Permite ver una lista de reportes generados y opciones para exportar.
  */
 const ReportesDashboard = () => {
-    const [isLoading, setIsLoading] = useState(false);
-    const [reportType, setReportType] = useState('solicitudes'); // 'solicitudes', 'equipos', 'mantenimientos'
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const { setGlobalMessage } = useContext(AuthContext);
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-    const handleGenerateReport = async (format) => {
-        setIsLoading(true);
-        try {
-            const params = {
-                type: reportType,
-                startDate,
-                endDate,
-            };
-            const blob = await generateReport(format, params);
+  // Función para cargar los reportes
+  const fetchReports = async () => {
+    try {
+      setLoading(true);
+      const data = await reportesService.getAll();
+      setReports(data);
+    } catch (err) {
+      setError('Error al cargar reportes: ' + err.message);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-            // Crear un URL para el blob y forzar la descarga
-            const url = window.URL.createObjectURL(new Blob([blob]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `reporte_${reportType}.${format}`);
-            document.body.appendChild(link);
-            link.click();
-            link.parentNode.removeChild(link);
-            window.URL.revokeObjectURL(url); // Liberar el URL del objeto
+  useEffect(() => {
+    fetchReports();
+  }, []);
 
-            setGlobalMessage({ message: `Reporte ${reportType.toUpperCase()} generado exitosamente en formato ${format.toUpperCase()}.`, type: 'success' });
+  const handleExportPdf = async (reportId) => {
+    try {
+      setLoading(true);
+      const response = await reportesService.exportPdf(reportId);
+      // Asumiendo que la API devuelve un blob o una URL para descargar
+      const url = window.URL.createObjectURL(new Blob([response]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `reporte_${reportId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      alert('Reporte PDF generado y descargado.');
+    } catch (err) {
+      alert('Error al generar PDF: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        } catch (error) {
-            console.error('Error generating report:', error);
-            const errorMessage = error.response?.data?.message || error.message || 'Error desconocido';
-            setGlobalMessage({ message: `Error al generar el reporte: ${errorMessage}`, type: 'error' });
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  const handleExportExcel = async (reportId) => {
+    try {
+      setLoading(true);
+      const response = await reportesService.exportExcel(reportId);
+      const url = window.URL.createObjectURL(new Blob([response]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `reporte_${reportId}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      alert('Reporte Excel generado y descargado.');
+    } catch (err) {
+      alert('Error al generar Excel: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    if (isLoading) return <Loader fullScreen message="Generando reporte..." />;
+  if (loading) return <Loader message="Cargando reportes..." className="mt-8" />;
+  if (error) return <p className="text-center text-red-500 mt-8">{error}</p>;
 
-    return (
-        <div className="p-6 bg-gray-100 flex-1 overflow-y-auto rounded-lg font-inter">
-            <Header
-                title="Panel de Reportes"
-                subtitle="Genera y exporta reportes de los diferentes módulos del sistema."
-            />
-
-            <Card title="Generar Nuevo Reporte">
-                <Form onSubmit={(e) => e.preventDefault()} className="shadow-none p-0">
-                    <div className="mb-4">
-                        <label htmlFor="reportType" className="block text-gray-700 text-sm font-semibold mb-2">Tipo de Reporte</label>
-                        <select
-                            id="reportType"
-                            value={reportType}
-                            onChange={(e) => setReportType(e.target.value)}
-                            disabled={isLoading}
-                            className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                            <option value="solicitudes">Solicitudes</option>
-                            <option value="equipos">Equipos</option>
-                            <option value="mantenimientos">Mantenimientos</option>
-                        </select>
-                    </div>
-
-                    <Input
-                        label="Fecha de Inicio (Opcional)"
-                        id="startDate"
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        disabled={isLoading}
-                    />
-                    <Input
-                        label="Fecha de Fin (Opcional)"
-                        id="endDate"
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        disabled={isLoading}
-                    />
-
-                    <div className="flex justify-end space-x-4 mt-8">
-                        <Button onClick={() => handleGenerateReport('excel')} isLoading={isLoading} variant="primary">
-                            Generar Excel
-                        </Button>
-                        <Button onClick={() => handleGenerateReport('pdf')} isLoading={isLoading} variant="secondary">
-                            Generar PDF
-                        </Button>
-                    </div>
-                </Form>
-            </Card>
-
-            <Card title="Reportes Recientes" className="mt-6">
-                <p className="text-gray-500">Aquí se mostrará una lista de reportes generados recientemente. (Funcionalidad pendiente)</p>
-                {/* Puedes añadir una tabla o lista de reportes generados previamente aquí si el backend lo soporta */}
-            </Card>
+  return (
+    <Card>
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">Reportes Generados</h3>
+      {reports.length === 0 ? (
+        <p className="text-gray-600">No hay reportes generados.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  ID
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Usuario ID
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Fecha de Envío
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {reports.map((report) => (
+                <tr key={report.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{report.id}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{report.usuario_id}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{report.fecha_envio}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <Button
+                      className="bg-blue-500 hover:bg-blue-600 text-white mr-2"
+                      onClick={() => handleExportPdf(report.id)}
+                    >
+                      Exportar PDF
+                    </Button>
+                    <Button
+                      className="bg-green-500 hover:bg-green-600 text-white"
+                      onClick={() => handleExportExcel(report.id)}
+                    >
+                      Exportar Excel
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-    );
+      )}
+    </Card>
+  );
 };
 
 export default ReportesDashboard;

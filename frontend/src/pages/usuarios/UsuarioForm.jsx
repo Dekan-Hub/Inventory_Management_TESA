@@ -1,153 +1,183 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { createUsuario, updateUsuario } from '../../services/usuariosService';
-import Input from '../../components/Input';
-import Button from '../../components/Button';
-import Form from '../../components/Form';
-import { AuthContext } from '../../context/AuthContext'; // Para setGlobalMessage
+import React, { useState, useEffect } from 'react';
 
 /**
- * UsuarioForm: Componente de formulario para agregar o editar un usuario.
- * Se puede usar dentro de un modal o como una página independiente.
+ * UsuarioForm: Componente para el formulario de creación o edición de usuarios.
  * @param {object} props - Propiedades del componente.
- * @param {object} [props.usuario] - Objeto del usuario actual (si es para editar) o vacío (si es para agregar).
- * @param {string} props.modalType - El tipo de operación del formulario ('add' para agregar, 'edit' para editar).
- * @param {function} props.onSave - Función de callback que se ejecuta después de guardar (con éxito o error).
- * @param {function} props.onCancel - Función de callback para cancelar la operación.
+ * @param {object} [props.userToEdit=null] - Objeto de usuario si se está editando, null para crear.
+ * @param {function} props.onBackToList - Función para volver a la vista de lista.
+ * @param {function} props.onSaveUser - Función para guardar (crear/actualizar) el usuario en el backend.
  */
-const UsuarioForm = ({ usuario, modalType, onSave, onCancel }) => {
-    // Inicializa el estado del formulario con los datos del usuario o valores por defecto.
-    const [formData, setFormData] = useState(usuario || {
-        username: '',
-        email: '',
-        password: '',
-        role: 'user' // Rol predeterminado.
-    });
-    const [isLoading, setIsLoading] = useState(false);
-    const [errors, setErrors] = useState({}); // Estado para errores de validación del formulario.
-    const { setGlobalMessage } = useContext(AuthContext); // Acceso al sistema de mensajes globales
+const UsuarioForm = ({ userToEdit, onBackToList, onSaveUser }) => {
+  const [formData, setFormData] = useState({
+    usuario: '',
+    nombre: '',
+    correo: '',
+    rol: 'usuario', // Valor por defecto
+    contraseña: ''
+  });
+  const [errors, setErrors] = useState({});
+  const [isNewUser, setIsNewUser] = useState(!userToEdit);
 
-    // Sincroniza `formData` con la prop `usuario` si cambia (útil para el modal de edición).
-    useEffect(() => {
-        setFormData(usuario || { username: '', email: '', password: '', role: 'user' });
-        setErrors({}); // Limpia errores al cambiar de usuario/tipo de modal.
-    }, [usuario, modalType]);
+  useEffect(() => {
+    // Si hay un usuario para editar, precarga los datos del formulario
+    if (userToEdit) {
+      setFormData({
+        id: userToEdit.id || userToEdit._id, // Usar id o _id según tu backend
+        usuario: userToEdit.usuario || '',
+        nombre: userToEdit.nombre || '',
+        correo: userToEdit.correo || '',
+        rol: userToEdit.rol || 'usuario',
+        contraseña: '' // La contraseña no se precarga por seguridad, siempre se ingresa nueva o se deja vacía
+      });
+      setIsNewUser(false);
+    } else {
+      // Si no hay usuario para editar, reinicia el formulario
+      setFormData({
+        usuario: '',
+        nombre: '',
+        correo: '',
+        rol: 'usuario',
+        contraseña: ''
+      });
+      setIsNewUser(true);
+    }
+    setErrors({}); // Limpia errores al cambiar de usuario/modo
+  }, [userToEdit]);
 
-    /**
-     * `validateForm`: Valida los campos del formulario.
-     * @returns {boolean} True si el formulario es válido, false en caso contrario.
-     */
-    const validateForm = () => {
-        let newErrors = {};
-        if (!formData.username) newErrors.username = 'El nombre de usuario es requerido.';
-        if (!formData.email) {
-            newErrors.email = 'El email es requerido.';
-        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = 'El email no es válido.';
-        }
-        if (modalType === 'add' && !formData.password) newErrors.password = 'La contraseña es requerida.';
-        if (formData.password && formData.password.length < 6) newErrors.password = 'La contraseña debe tener al menos 6 caracteres.';
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
 
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0; // Retorna true si no hay errores.
-    };
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.usuario.trim()) newErrors.usuario = 'El nombre de usuario es requerido.';
+    if (!formData.nombre.trim()) newErrors.nombre = 'El nombre completo es requerido.';
+    if (!formData.correo.trim()) newErrors.correo = 'El correo electrónico es requerido.';
+    else if (!/\S+@\S+\.\S+/.test(formData.correo)) newErrors.correo = 'El correo electrónico no es válido.';
 
-    const handleChange = (e) => {
-        const { id, value } = e.target;
-        setFormData(prev => ({ ...prev, [id]: value }));
-        // Limpia el error del campo específico cuando el usuario empieza a escribir.
-        if (errors[id]) {
-            setErrors(prev => ({ ...prev, [id]: undefined }));
-        }
-    };
+    // La contraseña es requerida solo para nuevos usuarios
+    // Para edición, es opcional (si se deja vacío, no se cambia en el backend)
+    if (isNewUser && !formData.contraseña) {
+      newErrors.contraseña = 'La contraseña es requerida para nuevos usuarios.';
+    } else if (formData.contraseña && formData.contraseña.length < 6) {
+      newErrors.contraseña = 'La contraseña debe tener al menos 6 caracteres.';
+    }
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!validateForm()) return; // Si la validación falla, no procede.
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-        setIsLoading(true);
-        try {
-            if (modalType === 'add') {
-                await createUsuario(formData);
-                onSave(true, 'Usuario agregado exitosamente.');
-            } else {
-                // Asegúrate de no enviar la contraseña si no ha sido modificada explícitamente y no está vacía
-                // O envía un objeto con solo los campos actualizados
-                const dataToUpdate = { ...formData };
-                if (!dataToUpdate.password) {
-                    delete dataToUpdate.password; // No enviar la contraseña si está vacía
-                }
-                await updateUsuario(formData._id, dataToUpdate);
-                onSave(true, 'Usuario actualizado exitosamente.');
-            }
-        } catch (error) {
-            console.error('Error saving user:', error);
-            // Muestra un error más específico si viene del backend.
-            const apiErrorMessage = error.response?.data?.message || error.message || 'Error desconocido';
-            setGlobalMessage({ message: `Error al guardar usuario: ${apiErrorMessage}`, type: 'error' });
-            onSave(false, `Error al guardar usuario: ${apiErrorMessage}`); // Pasa el error al callback principal
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (validateForm()) {
+      // Preparamos los datos a enviar. Si la contraseña está vacía en edición, no la enviamos.
+      const dataToSend = { ...formData };
+      if (!isNewUser && dataToSend.contraseña === '') {
+        delete dataToSend.contraseña; // No enviar la contraseña si no se ha modificado en edición
+      }
 
-    return (
-        <Form onSubmit={handleSubmit} disabled={isLoading} className="shadow-none p-0">
-            <Input
-                label="Nombre de Usuario"
-                id="username"
-                type="text"
-                value={formData.username}
-                onChange={handleChange}
-                error={errors.username}
-                required
-                disabled={isLoading}
-            />
-            <Input
-                label="Email"
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                error={errors.email}
-                required
-                disabled={isLoading}
-            />
-            {/* El campo de contraseña es requerido al agregar, opcional al editar. */}
-            <Input
-                label="Contraseña"
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                error={errors.password}
-                required={modalType === 'add'}
-                placeholder={modalType === 'edit' ? 'Dejar en blanco para no cambiar' : ''}
-                disabled={isLoading}
-            />
-            <div>
-                <label htmlFor="role" className="block text-gray-700 text-sm font-semibold mb-2">Rol</label>
-                <select
-                    id="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                    disabled={isLoading}
-                    className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
-                >
-                    <option value="user">Usuario</option>
-                    <option value="admin">Administrador</option>
-                </select>
-            </div>
+      console.log('Formulario de usuario enviado:', dataToSend);
+      onSaveUser(dataToSend); // Llamar a la función onSaveUser con los datos ajustados
+    } else {
+      console.log('Errores en el formulario:', errors);
+    }
+  };
 
-            <div className="flex justify-end space-x-4 mt-8">
-                <Button onClick={onCancel} disabled={isLoading} variant="secondary">
-                    Cancelar
-                </Button>
-                <Button type="submit" isLoading={isLoading} variant="primary">
-                    {isLoading ? 'Guardando...' : 'Guardar'}
-                </Button>
-            </div>
-        </Form>
-    );
+  return (
+    <div className="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200 mt-4">
+      <h4 className="text-xl font-medium text-tesa-text mb-4">{isNewUser ? 'Añadir Nuevo Usuario' : 'Editar Usuario'}</h4>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="usuario" className="block text-sm font-medium text-gray-700">Usuario</label>
+          <input
+            type="text"
+            id="usuario"
+            name="usuario"
+            value={formData.usuario}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-tesa-accent focus:ring-tesa-accent"
+            required
+          />
+          {errors.usuario && <p className="mt-1 text-sm text-red-600">{errors.usuario}</p>}
+        </div>
+        <div>
+          <label htmlFor="nombre" className="block text-sm font-medium text-gray-700">Nombre Completo</label>
+          <input
+            type="text"
+            id="nombre"
+            name="nombre"
+            value={formData.nombre}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-tesa-accent focus:ring-tesa-accent"
+            required
+          />
+          {errors.nombre && <p className="mt-1 text-sm text-red-600">{errors.nombre}</p>}
+        </div>
+        <div>
+          <label htmlFor="correo" className="block text-sm font-medium text-gray-700">Correo Electrónico</label>
+          <input
+            type="email"
+            id="correo"
+            name="correo"
+            value={formData.correo}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-tesa-accent focus:ring-tesa-accent"
+            required
+          />
+          {errors.correo && <p className="mt-1 text-sm text-red-600">{errors.correo}</p>}
+        </div>
+        <div>
+          <label htmlFor="rol" className="block text-sm font-medium text-gray-700">Rol</label>
+          <select
+            id="rol"
+            name="rol"
+            value={formData.rol}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-tesa-accent focus:ring-tesa-accent"
+          >
+            <option value="administrador">Administrador</option>
+            <option value="técnico">Técnico</option>
+            <option value="usuario">Usuario</option>
+          </select>
+        </div>
+        <div>
+          {/* ¡CAMBIADO: name='contraseña' y ya no hay confirmPassword! */}
+          <label htmlFor="contraseña" className="block text-sm font-medium text-gray-700">Contraseña {isNewUser ? '' : '(dejar vacío para no cambiar)'}</label>
+          <input
+            type="password"
+            id="contraseña"
+            name="contraseña" // Nombre del campo para el backend
+            value={formData.contraseña}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-tesa-accent focus:ring-tesa-accent"
+            // La contraseña solo es requerida para nuevos usuarios
+            {...(isNewUser ? { required: true } : {})}
+          />
+          {errors.contraseña && <p className="mt-1 text-sm text-red-600">{errors.contraseña}</p>}
+        </div>
+
+        <div className="flex justify-end space-x-3 mt-6">
+          <button
+            type="button"
+            onClick={onBackToList}
+            className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-100 transition-colors duration-200"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            className="px-6 py-2 bg-tesa-accent text-white font-semibold rounded-lg shadow-md hover:opacity-90 transition-colors duration-200"
+          >
+            {isNewUser ? 'Crear Usuario' : 'Guardar Cambios'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 };
 
 export default UsuarioForm;

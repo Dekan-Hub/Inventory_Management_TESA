@@ -1,62 +1,61 @@
-import React, { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext'; // Importa el AuthContext para la función de logout
+import React from 'react';
+import { useAppContext } from '../context/AppContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 /**
- * Header: Componente de encabezado de la aplicación.
- * Muestra el título de la aplicación, notificaciones y un menú de usuario con opción de cerrar sesión.
- * @param {object} props - Propiedades del componente.
- * @param {object} props.user - Objeto con la información del usuario autenticado (ej. { usuario: '...' }).
- * @param {function} props.onNavigate - Función de navegación que se podría usar si el Header tuviera enlaces de navegación.
- * @param {string} props.currentView - La vista actual, para un posible resaltado o lógica condicional.
+ * Header: Componente de cabecera superior del Dashboard.
+ * Contiene el título de la sección actual y el icono de configuración.
  */
-const Header = ({ user, onNavigate, currentView }) => {
-    // Obtiene la función de logout del AuthContext.
-    const { logout } = useContext(AuthContext);
+const Header = () => {
+  const { currentPage, setCurrentPage } = useAppContext();
+  const { user } = useAuth();
 
-    return (
-        // Contenedor principal del encabezado.
-        // Clases de Tailwind: fondo blanco, padding, flexbox para alinear elementos, sombra.
-        <header className="bg-white p-5 flex justify-between items-center shadow-lg rounded-b-xl">
-            {/* Título principal del panel de control. */}
-            <h1 className="text-3xl font-bold text-gray-800">Panel de Control</h1>
-            {/* Contenedor para elementos del lado derecho: notificaciones y perfil de usuario. */}
-            <div className="flex items-center space-x-6">
-                {/* Icono de Notificaciones (placeholder).
-                    Este botón no tiene funcionalidad implementada, es solo visual. */}
-                <button className="text-gray-600 hover:text-blue-600 transition-colors duration-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                </button>
-                {/* Contenedor del dropdown de usuario.
-                    `relative group` permite que el menú desplegable (absolute) aparezca al pasar el ratón. */}
-                <div className="relative group">
-                    {/* Botón que muestra el nombre del usuario y su avatar. */}
-                    <button className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors duration-200 focus:outline-none">
-                        {/* Nombre del usuario, o un placeholder si no está disponible. */}
-                        <span className="font-semibold text-lg">{user?.usuario || 'Admin Usuario'}</span>
-                        {/* Avatar del usuario. Usando un placeholder de imagen. */}
-                        <img
-                            className="h-10 w-10 rounded-full object-cover border-2 border-blue-400 shadow-md"
-                            src="https://placehold.co/40x40/b3e0ff/0056b3?text=AU" // Placeholder para avatar de usuario
-                            alt="User Avatar"
-                        />
-                    </button>
-                    {/* Menú desplegable que aparece al hacer hover sobre el botón del usuario. */}
-                    {/* `opacity-0 invisible group-hover:opacity-100 group-hover:visible` para la animación de aparición. */}
-                    <div className="absolute right-0 mt-3 w-56 bg-white rounded-md shadow-xl py-2 z-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform scale-95 group-hover:scale-100 origin-top-right">
-                        {/* Elementos del menú (simulados como enlaces, sin funcionalidad real en este ejemplo). */}
-                        <a href="#" className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-150">Perfil</a>
-                        <a href="#" className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-150">Cambiar contraseña</a>
-                        {/* Separador visual. */}
-                        <div className="border-t border-gray-100 my-2"></div>
-                        {/* Botón para cerrar sesión. Llama a la función `logout` del AuthContext. */}
-                        <button onClick={logout} className="block w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors duration-150">Cerrar sesión</button>
-                    </div>
-                </div>
-            </div>
-        </header>
-    );
+  // Función para obtener un título legible para la página actual
+  const getPageTitle = (pageId) => {
+    switch (pageId) {
+      case 'inicio': return 'Panel de Inicio';
+      case 'equipos': return 'Gestión de Equipos';
+      case 'mantenimientos': return 'Mantenimientos';
+      case 'solicitudes': return 'Solicitudes';
+      case 'alertas': return 'Alertas';
+      case 'movimientos': return 'Movimientos';
+      case 'reportes': return 'Reportes';
+      case 'ubicaciones': return 'Gestión de Ubicaciones';
+      case 'configuracion': return 'Configuración del Sistema';
+      default: return 'Sección Desconocida';
+    }
+  };
+
+  // Solo el administrador tiene acceso a la configuración
+  const canAccessConfig = user?.rol === 'administrador';
+
+  return (
+    <header className="bg-white p-6 rounded-2xl shadow-md mb-8 flex justify-between items-center">
+      <div>
+        {/* Usando tesa-text para el color del texto */}
+        <h2 className="text-3xl font-bold text-tesa-text">{getPageTitle(currentPage)}</h2>
+        <p className="text-gray-600 mt-1">
+          {currentPage === 'inicio' ? `Bienvenido, ${user?.name || user?.usuario || 'Usuario'}!` : `Administra tus ${getPageTitle(currentPage).toLowerCase()}.`}
+        </p>
+      </div>
+
+      {canAccessConfig && (
+        <button
+          onClick={() => setCurrentPage('configuracion')}
+          className={`flex items-center p-3 rounded-full transition-colors duration-200 ${
+            // Cambiado a colores de la paleta tesa o un azul similar si no quieres usar el mismo accent
+            currentPage === 'configuracion' ? 'bg-tesa-accent text-white shadow-lg' : 'bg-gray-200 text-tesa-text hover:bg-gray-300'
+          }`}
+          title="Configuración del Sistema"
+        >
+          {/* Icono de Configuración  */} 
+           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
+            <path fillRule="evenodd" d="M11.862 1.556a.75.75 0 0 1 .168 1.053l-4.16 5.867a1.501 1.501 0 0 1-1.287.625H2.75c-.621 0-1.125.504-1.125 1.125v2.25c0 .621.504 1.125 1.125 1.125h3.832c.532 0 1.016.29 1.287.75l4.16 5.867a.75.75 0 0 1-1.053.168.75.75 0 0 1-.168-1.053l4.16-5.867A1.501 1.501 0 0 1 17.25 13.5h3.832c.621 0 1.125-.504 1.125-1.125v-2.25c0-.621-.504-1.125-1.125-1.125h-3.832a1.501 1.501 0 0 1-1.287-.75l-4.16-5.867a.75.75 0 0 1-.168-1.053Z" clipRule="evenodd" />
+          </svg>
+        </button>
+      )}
+    </header>
+  );
 };
 
 export default Header;
