@@ -1,48 +1,50 @@
 /**
- * @file Rutas para la gestión de ubicaciones.
- * @description Define las rutas para las operaciones CRUD de la entidad Ubicacion.
- * Requiere autenticación y autorización para la mayoría de las operaciones.
+ * @file Rutas de Ubicaciones
+ * @description Define las rutas CRUD para ubicaciones con permisos por roles
  */
 
 const express = require('express');
-const ubicacionController = require('../controllers/ubicaciones.controller');
+const router = express.Router();
+const ubicacionesController = require('../controllers/ubicaciones.controller');
 const { verifyToken, checkRole } = require('../middleware/auth');
 
-const router = express.Router();
-
-/**
- * @route POST /api/ubicaciones
- * @description Crea una nueva ubicación. Solo accesible por administradores.
- * @access Private (Admin only)
- */
-router.post('/', verifyToken, checkRole(['administrador']), ubicacionController.crearUbicacion);
+// =====================================================
+// RUTAS PROTEGIDAS - Requieren autenticación
+// =====================================================
 
 /**
  * @route GET /api/ubicaciones
- * @description Obtiene todas las ubicaciones. Accesible por todos los usuarios autenticados.
- * @access Private (All authenticated users)
+ * @description Obtener todas las ubicaciones activas
+ * @access Private - Todos los roles
  */
-router.get('/', verifyToken, ubicacionController.obtenerUbicaciones);
+router.get('/', verifyToken, ubicacionesController.obtenerUbicaciones);
 
 /**
  * @route GET /api/ubicaciones/:id
- * @description Obtiene una ubicación por su ID. Accesible por todos los usuarios autenticados.
- * @access Private (All authenticated users)
+ * @description Obtener una ubicación específica por ID
+ * @access Private - Todos los roles
  */
-router.get('/:id', verifyToken, ubicacionController.obtenerUbicacionPorId);
+router.get('/:id', verifyToken, ubicacionesController.obtenerUbicacionPorId);
+
+/**
+ * @route POST /api/ubicaciones
+ * @description Crear una nueva ubicación
+ * @access Private - Solo Administradores
+ */
+router.post('/', verifyToken, checkRole(['administrador']), ubicacionesController.crearUbicacion);
 
 /**
  * @route PUT /api/ubicaciones/:id
- * @description Actualiza una ubicación por su ID. Solo accesible por administradores.
- * @access Private (Admin only)
+ * @description Actualizar una ubicación existente
+ * @access Private - Solo Administradores
  */
-router.put('/:id', verifyToken, checkRole(['administrador']), ubicacionController.actualizarUbicacion);
+router.put('/:id', verifyToken, checkRole(['administrador']), ubicacionesController.actualizarUbicacion);
 
 /**
  * @route DELETE /api/ubicaciones/:id
- * @description Elimina una ubicación por su ID. Solo accesible por administradores.
- * @access Private (Admin only)
+ * @description Eliminar una ubicación
+ * @access Private - Solo Administradores
  */
-router.delete('/:id', verifyToken, checkRole(['administrador']), ubicacionController.eliminarUbicacion);
+router.delete('/:id', verifyToken, checkRole(['administrador']), ubicacionesController.eliminarUbicacion);
 
-module.exports = router;
+module.exports = router; 

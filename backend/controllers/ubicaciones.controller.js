@@ -1,159 +1,208 @@
 /**
- * @file Controlador para la gestión de ubicaciones físicas.
- * @description Maneja las operaciones CRUD para la entidad Ubicacion.
+ * @file Controlador de Ubicaciones
+ * @description Maneja las operaciones CRUD para ubicaciones
  */
 
 const { Ubicacion } = require('../models');
-const { Op } = require('sequelize');
-
-/**
- * @function crearUbicacion
- * @description Crea una nueva ubicación.
- * @param {object} req - Objeto de la petición. Se espera `req.body` con `nombre_ubicacion`, `direccion`, `descripcion`.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
- */
-exports.crearUbicacion = async (req, res, next) => {
-    try {
-        const { nombre_ubicacion, direccion, descripcion } = req.body;
-
-        if (!nombre_ubicacion) {
-            return res.status(400).json({ message: 'El nombre de la ubicación es obligatorio.' });
-        }
-
-        const ubicacionExistente = await Ubicacion.findOne({ where: { nombre_ubicacion } });
-        if (ubicacionExistente) {
-            return res.status(409).json({ message: 'Ya existe una ubicación con este nombre.' });
-        }
-
-        const nuevaUbicacion = await Ubicacion.create({ nombre_ubicacion, direccion, descripcion });
-
-        res.status(201).json({
-            message: 'Ubicación creada exitosamente.',
-            ubicacion: nuevaUbicacion
-        });
-    } catch (error) {
-        next(error);
-    }
-};
 
 /**
  * @function obtenerUbicaciones
- * @description Obtiene todas las ubicaciones.
- * @param {object} req - Objeto de la petición.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
+ * @description Obtiene todas las ubicaciones activas
+ * @param {object} req - Objeto de la petición
+ * @param {object} res - Objeto de la respuesta
+ * @param {function} next - Función para pasar al siguiente middleware
  */
-exports.obtenerUbicaciones = async (req, res, next) => {
+const obtenerUbicaciones = async (req, res, next) => {
     try {
         const ubicaciones = await Ubicacion.findAll({
-            order: [['nombre_ubicacion', 'ASC']]
+            where: { activo: true },
+            order: [['edificio', 'ASC'], ['sala', 'ASC']]
         });
-
-        if (ubicaciones.length === 0) {
-            return res.status(404).json({ message: 'No se encontraron ubicaciones.' });
-        }
 
         res.status(200).json({
             message: 'Ubicaciones obtenidas exitosamente.',
-            total: ubicaciones.length,
-            ubicaciones: ubicaciones
+            data: ubicaciones
         });
+
     } catch (error) {
+        console.error('Error al obtener ubicaciones:', error);
         next(error);
     }
 };
 
 /**
  * @function obtenerUbicacionPorId
- * @description Obtiene una ubicación por su ID.
- * @param {object} req - Objeto de la petición. Se espera `req.params.id`.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
+ * @description Obtiene una ubicación específica por su ID
+ * @param {object} req - Objeto de la petición
+ * @param {object} res - Objeto de la respuesta
+ * @param {function} next - Función para pasar al siguiente middleware
  */
-exports.obtenerUbicacionPorId = async (req, res, next) => {
+const obtenerUbicacionPorId = async (req, res, next) => {
     try {
         const { id } = req.params;
+
         const ubicacion = await Ubicacion.findByPk(id);
 
         if (!ubicacion) {
-            return res.status(404).json({ message: 'Ubicación no encontrada.' });
+            return res.status(404).json({
+                message: 'Ubicación no encontrada.'
+            });
         }
 
         res.status(200).json({
             message: 'Ubicación obtenida exitosamente.',
-            ubicacion: ubicacion
+            data: ubicacion
         });
+
     } catch (error) {
+        console.error('Error al obtener ubicación:', error);
+        next(error);
+    }
+};
+
+/**
+ * @function crearUbicacion
+ * @description Crea una nueva ubicación
+ * @param {object} req - Objeto de la petición
+ * @param {object} res - Objeto de la respuesta
+ * @param {function} next - Función para pasar al siguiente middleware
+ */
+const crearUbicacion = async (req, res, next) => {
+    try {
+        const { edificio, sala, descripcion } = req.body;
+
+        if (!edificio || !sala) {
+            return res.status(400).json({
+                message: 'El edificio y la sala son requeridos.'
+            });
+        }
+
+        // Verificar si ya existe una ubicación con ese edificio y sala
+        const ubicacionExistente = await Ubicacion.findOne({
+            where: { edificio, sala }
+        });
+
+        if (ubicacionExistente) {
+            return res.status(409).json({
+                message: 'Ya existe una ubicación con ese edificio y sala.'
+            });
+        }
+
+        const nuevaUbicacion = await Ubicacion.create({
+            edificio,
+            sala,
+            descripcion
+        });
+
+        res.status(201).json({
+            message: 'Ubicación creada exitosamente.',
+            data: nuevaUbicacion
+        });
+
+    } catch (error) {
+        console.error('Error al crear ubicación:', error);
         next(error);
     }
 };
 
 /**
  * @function actualizarUbicacion
- * @description Actualiza una ubicación por su ID.
- * @param {object} req - Objeto de la petición. Se espera `req.params.id` y `req.body` con los campos a actualizar.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
+ * @description Actualiza una ubicación existente
+ * @param {object} req - Objeto de la petición
+ * @param {object} res - Objeto de la respuesta
+ * @param {function} next - Función para pasar al siguiente middleware
  */
-exports.actualizarUbicacion = async (req, res, next) => {
+const actualizarUbicacion = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { nombre_ubicacion, direccion, descripcion } = req.body;
+        const { edificio, sala, descripcion, activo } = req.body;
 
         const ubicacion = await Ubicacion.findByPk(id);
+
         if (!ubicacion) {
-            return res.status(404).json({ message: 'Ubicación no encontrada.' });
+            return res.status(404).json({
+                message: 'Ubicación no encontrada.'
+            });
         }
 
-        if (nombre_ubicacion && nombre_ubicacion !== ubicacion.nombre_ubicacion) {
-            const ubicacionExistente = await Ubicacion.findOne({ where: { nombre_ubicacion } });
-            if (ubicacionExistente && ubicacionExistente.id_ubicacion !== parseInt(id)) {
-                return res.status(409).json({ message: 'Ya existe otra ubicación con este nombre.' });
+        // Verificar unicidad del edificio y sala si se están actualizando
+        if ((edificio && edificio !== ubicacion.edificio) || (sala && sala !== ubicacion.sala)) {
+            const ubicacionExistente = await Ubicacion.findOne({
+                where: { 
+                    edificio: edificio || ubicacion.edificio,
+                    sala: sala || ubicacion.sala
+                }
+            });
+
+            if (ubicacionExistente && ubicacionExistente.id !== parseInt(id)) {
+                return res.status(409).json({
+                    message: 'Ya existe otra ubicación con ese edificio y sala.'
+                });
             }
         }
 
-        ubicacion.nombre_ubicacion = nombre_ubicacion || ubicacion.nombre_ubicacion;
-        ubicacion.direccion = direccion || ubicacion.direccion;
-        ubicacion.descripcion = descripcion || ubicacion.descripcion;
-
-        await ubicacion.save();
+        await ubicacion.update({
+            edificio: edificio || ubicacion.edificio,
+            sala: sala || ubicacion.sala,
+            descripcion: descripcion || ubicacion.descripcion,
+            activo: activo !== undefined ? activo : ubicacion.activo
+        });
 
         res.status(200).json({
             message: 'Ubicación actualizada exitosamente.',
-            ubicacion: ubicacion
+            data: ubicacion
         });
+
     } catch (error) {
+        console.error('Error al actualizar ubicación:', error);
         next(error);
     }
 };
 
 /**
  * @function eliminarUbicacion
- * @description Elimina una ubicación por su ID.
- * @param {object} req - Objeto de la petición. Se espera `req.params.id`.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
+ * @description Elimina una ubicación
+ * @param {object} req - Objeto de la petición
+ * @param {object} res - Objeto de la respuesta
+ * @param {function} next - Función para pasar al siguiente middleware
  */
-exports.eliminarUbicacion = async (req, res, next) => {
+const eliminarUbicacion = async (req, res, next) => {
     try {
         const { id } = req.params;
+
         const ubicacion = await Ubicacion.findByPk(id);
 
         if (!ubicacion) {
-            return res.status(404).json({ message: 'Ubicación no encontrada.' });
+            return res.status(404).json({
+                message: 'Ubicación no encontrada.'
+            });
         }
 
-        // Aquí podrías añadir una validación para evitar eliminar ubicaciones que están siendo usadas por equipos o movimientos
-        // const equiposEnUbicacion = await Equipo.count({ where: { Ubicacionid: id } });
-        // if (equiposEnUbicacion > 0) {
-        //   return res.status(409).json({ message: 'No se puede eliminar la ubicación porque hay equipos asociados a ella.' });
-        // }
+        // Verificar si hay equipos en esta ubicación
+        const equiposCount = await ubicacion.countEquipos();
+
+        if (equiposCount > 0) {
+            return res.status(400).json({
+                message: 'No se puede eliminar la ubicación porque hay equipos asociados.'
+            });
+        }
 
         await ubicacion.destroy();
 
-        res.status(200).json({ message: 'Ubicación eliminada exitosamente.' });
+        res.status(200).json({
+            message: 'Ubicación eliminada exitosamente.'
+        });
+
     } catch (error) {
+        console.error('Error al eliminar ubicación:', error);
         next(error);
     }
 };
+
+module.exports = {
+    obtenerUbicaciones,
+    obtenerUbicacionPorId,
+    crearUbicacion,
+    actualizarUbicacion,
+    eliminarUbicacion
+}; 

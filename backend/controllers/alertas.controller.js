@@ -1,206 +1,176 @@
-/**
- * @file Controlador para la gestión de alertas y notificaciones.
- * @description Maneja las operaciones CRUD para la entidad Alerta.
- */
+const { Alerta, Equipo, Usuario } = require('../models');
+const logger = require('../utils/logger');
 
-const { Alerta, Usuario, Equipo } = require('../models');
-const { Op } = require('sequelize');
-
-/**
- * @function crearAlerta
- * @description Crea una nueva alerta en el sistema.
- * @param {object} req - Objeto de la petición. Se espera `req.body` con `tipo_alerta`, `mensaje`, `id_usuario_destino`, `id_usuario_origen`, `id_equipo_asociado`.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware (manejo de errores).
- */
-exports.crearAlerta = async (req, res, next) => {
+class AlertasController {
+  async getAll(req, res, next) {
     try {
-        const { tipo_alerta, mensaje, id_usuario_destino, id_usuario_origen, id_equipo_asociado } = req.body;
-
-        if (!tipo_alerta || !mensaje || !id_usuario_destino) {
-            return res.status(400).json({ message: 'Tipo de alerta, mensaje y usuario destino son obligatorios.' });
+      const {
+        page = 1,
+        limit = 10,
+        tipo,
+        estado,
+        equipo_id,
+        usuario_id,
+        fecha_inicio,
+        fecha_fin
+      } = req.query;
+      const offset = (page - 1) * limit;
+      const where = {};
+      if (tipo) where.tipo = tipo;
+      if (estado) where.estado = estado;
+      if (equipo_id) where.equipo_id = equipo_id;
+      if (usuario_id) where.usuario_id = usuario_id;
+      if (fecha_inicio || fecha_fin) {
+        where.fecha_alerta = {};
+        if (fecha_inicio) where.fecha_alerta.$gte = new Date(fecha_inicio);
+        if (fecha_fin) where.fecha_alerta.$lte = new Date(fecha_fin);
+      }
+      const alertas = await Alerta.findAndCountAll({
+        where,
+        include: [
+          { model: Equipo, as: 'equipo', attributes: ['id', 'codigo', 'nombre'] },
+          { model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'apellido', 'email'] }
+        ],
+        order: [['fecha_alerta', 'DESC']],
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      });
+      const totalPages = Math.ceil(alertas.count / limit);
+      logger.info(`Alertas obtenidas: ${alertas.rows.length} de ${alertas.count}`);
+      res.json({
+        success: true,
+        data: alertas.rows,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: alertas.count,
+          totalPages
         }
-
-        // Opcional: Validar que los IDs de usuario y equipo existen
-        const destinoExiste = await Usuario.findByPk(id_usuario_destino);
-        if (!destinoExiste) {
-            return res.status(404).json({ message: `Usuario destino con ID ${id_usuario_destino} no encontrado.` });
-        }
-        if (id_usuario_origen) {
-            const origenExiste = await Usuario.findByPk(id_usuario_origen);
-            if (!origenExiste) {
-                return res.status(404).json({ message: `Usuario origen con ID ${id_usuario_origen} no encontrado.` });
-            }
-        }
-        if (id_equipo_asociado) {
-            const equipoExiste = await Equipo.findByPk(id_equipo_asociado);
-            if (!equipoExiste) {
-                return res.status(404).json({ message: `Equipo asociado con ID ${id_equipo_asociado} no encontrado.` });
-            }
-        }
-
-        const nuevaAlerta = await Alerta.create({
-            tipo_alerta,
-            mensaje,
-            id_usuario_destino,
-            id_usuario_origen,
-            id_equipo_asociado
-        });
-
-        res.status(201).json({
-            message: 'Alerta creada exitosamente.',
-            alerta: nuevaAlerta
-        });
+      });
     } catch (error) {
-        next(error);
+      logger.error('Error al obtener alertas:', error);
+      next(error);
     }
-};
+  }
 
-/**
- * @function obtenerAlertas
- * @description Obtiene todas las alertas, con opciones de filtrado.
- * @param {object} req - Objeto de la petición. Puede tener `req.query.tipo_alerta`, `req.query.leida`, `req.query.usuarioDestinoId`, `req.query.equipoAsociadoId`.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
- */
-exports.obtenerAlertas = async (req, res, next) => {
+  async getById(req, res, next) {
     try {
-        const { tipo_alerta, leida, usuarioDestinoId, equipoAsociadoId } = req.query;
-        const whereClause = {};
-
-        if (tipo_alerta) {
-            whereClause.tipo_alerta = tipo_alerta;
-        }
-        if (leida !== undefined) {
-            whereClause.leida = leida === 'true'; // Convertir string a booleano
-        }
-        if (usuarioDestinoId) {
-            whereClause.id_usuario_destino = usuarioDestinoId;
-        }
-        if (equipoAsociadoId) {
-            whereClause.id_equipo_asociado = equipoAsociadoId;
-        }
-
-        const alertas = await Alerta.findAll({
-            where: whereClause,
-            include: [
-                { model: Usuario, as: 'destinatarioDeAlerta', attributes: ['id_usuario', 'nombre_usuario', 'correo'] },
-                { model: Usuario, as: 'remitenteDeAlerta', attributes: ['id_usuario', 'nombre_usuario', 'correo'] },
-                { model: Equipo, as: 'equipoAsociadoAAlerta', attributes: ['id_equipo', 'nombre', 'numero_serie'] }
-            ],
-            order: [['fecha_creacion', 'DESC']]
-        });
-
-        if (alertas.length === 0) {
-            return res.status(404).json({ message: 'No se encontraron alertas que coincidan con los criterios.' });
-        }
-
-        res.status(200).json({
-            message: 'Alertas obtenidas exitosamente.',
-            total: alertas.length,
-            alertas: alertas
-        });
+      const { id } = req.params;
+      const alerta = await Alerta.findByPk(id, {
+        include: [
+          { model: Equipo, as: 'equipo', attributes: ['id', 'codigo', 'nombre'] },
+          { model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'apellido', 'email'] }
+        ]
+      });
+      if (!alerta) {
+        return res.status(404).json({ success: false, message: 'Alerta no encontrada' });
+      }
+      logger.info(`Alerta obtenida: ID ${id}`);
+      res.json({ success: true, data: alerta });
     } catch (error) {
-        next(error);
+      logger.error('Error al obtener alerta:', error);
+      next(error);
     }
-};
+  }
 
-/**
- * @function obtenerAlertaPorId
- * @description Obtiene una alerta específica por su ID.
- * @param {object} req - Objeto de la petición. Se espera `req.params.id`.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
- */
-exports.obtenerAlertaPorId = async (req, res, next) => {
+  async create(req, res, next) {
     try {
-        const { id } = req.params;
-
-        const alerta = await Alerta.findByPk(id, {
-            include: [
-                { model: Usuario, as: 'destinatarioDeAlerta', attributes: ['id_usuario', 'nombre_usuario', 'correo'] },
-                { model: Usuario, as: 'remitenteDeAlerta', attributes: ['id_usuario', 'nombre_usuario', 'correo'] },
-                { model: Equipo, as: 'equipoAsociadoAAlerta', attributes: ['id_equipo', 'nombre', 'numero_serie'] }
-            ]
-        });
-
-        if (!alerta) {
-            return res.status(404).json({ message: 'Alerta no encontrada.' });
-        }
-
-        // Autorización adicional: Solo el destinatario, el remitente o un admin/tecnico puede ver la alerta
-        // Asume que req.user está poblado por verifyToken
-        if (req.user.rol !== 'administrador' && req.user.rol !== 'tecnico' &&
-            req.user.id_usuario !== alerta.id_usuario_destino &&
-            req.user.id_usuario !== alerta.id_usuario_origen) {
-            return res.status(403).json({ message: 'Acceso denegado. No tiene permisos para ver esta alerta.' });
-        }
-
-        res.status(200).json({
-            message: 'Alerta obtenida exitosamente.',
-            alerta: alerta
-        });
+      const { equipo_id, tipo, mensaje, prioridad = 'media' } = req.body;
+      const usuario_id = req.user.id;
+      // Validar equipo
+      const equipo = await Equipo.findByPk(equipo_id);
+      if (!equipo) {
+        return res.status(400).json({ success: false, message: 'El equipo especificado no existe' });
+      }
+      const alerta = await Alerta.create({
+        equipo_id,
+        usuario_id,
+        tipo,
+        mensaje,
+        prioridad,
+        estado: 'activa',
+        fecha_alerta: new Date()
+      });
+      logger.info(`Alerta creada: ID ${alerta.id} para equipo ${equipo_id}`);
+      res.status(201).json({ success: true, message: 'Alerta creada exitosamente', data: alerta });
     } catch (error) {
-        next(error);
+      logger.error('Error al crear alerta:', error);
+      next(error);
     }
-};
+  }
 
-/**
- * @function marcarAlertaComoLeida
- * @description Marca una alerta como leída.
- * @param {object} req - Objeto de la petición. Se espera `req.params.id`.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
- */
-exports.marcarAlertaComoLeida = async (req, res, next) => {
+  async update(req, res, next) {
     try {
-        const { id } = req.params;
-
-        const alerta = await Alerta.findByPk(id);
-
-        if (!alerta) {
-            return res.status(404).json({ message: 'Alerta no encontrada.' });
-        }
-
-        // Autorización: Solo el destinatario o un admin/tecnico puede marcar como leída
-        if (req.user.rol !== 'administrador' && req.user.rol !== 'tecnico' &&
-            req.user.id_usuario !== alerta.id_usuario_destino) {
-            return res.status(403).json({ message: 'Acceso denegado. No tiene permisos para marcar esta alerta como leída.' });
-        }
-
-        alerta.leida = true;
-        await alerta.save();
-
-        res.status(200).json({
-            message: 'Alerta marcada como leída exitosamente.',
-            alerta: alerta
-        });
+      const { id } = req.params;
+      const { mensaje, estado, prioridad } = req.body;
+      const alerta = await Alerta.findByPk(id);
+      if (!alerta) {
+        return res.status(404).json({ success: false, message: 'Alerta no encontrada' });
+      }
+      // Solo admin o el usuario que creó la alerta puede actualizar
+      if (req.user.rol !== 'admin' && alerta.usuario_id !== req.user.id) {
+        return res.status(403).json({ success: false, message: 'No tienes permisos para actualizar esta alerta' });
+      }
+      await alerta.update({ mensaje, estado, prioridad });
+      logger.info(`Alerta actualizada: ID ${id}`);
+      res.json({ success: true, message: 'Alerta actualizada exitosamente', data: alerta });
     } catch (error) {
-        next(error);
+      logger.error('Error al actualizar alerta:', error);
+      next(error);
     }
-};
+  }
 
-/**
- * @function eliminarAlerta
- * @description Elimina una alerta por su ID. Solo accesible por administradores.
- * @param {object} req - Objeto de la petición. Se espera `req.params.id`.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
- */
-exports.eliminarAlerta = async (req, res, next) => {
+  async delete(req, res, next) {
     try {
-        const { id } = req.params;
-
-        const alerta = await Alerta.findByPk(id);
-
-        if (!alerta) {
-            return res.status(404).json({ message: 'Alerta no encontrada.' });
-        }
-
-        await alerta.destroy();
-
-        res.status(200).json({ message: 'Alerta eliminada exitosamente.' });
+      const { id } = req.params;
+      const alerta = await Alerta.findByPk(id);
+      if (!alerta) {
+        return res.status(404).json({ success: false, message: 'Alerta no encontrada' });
+      }
+      // Solo admin puede eliminar alertas
+      if (req.user.rol !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Solo los administradores pueden eliminar alertas' });
+      }
+      await alerta.destroy();
+      logger.info(`Alerta eliminada: ID ${id}`);
+      res.json({ success: true, message: 'Alerta eliminada exitosamente' });
     } catch (error) {
-        next(error);
+      logger.error('Error al eliminar alerta:', error);
+      next(error);
     }
-};
+  }
+
+  async getByEquipo(req, res, next) {
+    try {
+      const { equipo_id } = req.params;
+      const { page = 1, limit = 10 } = req.query;
+      const offset = (page - 1) * limit;
+      const alertas = await Alerta.findAndCountAll({
+        where: { equipo_id },
+        include: [
+          { model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'apellido', 'email'] }
+        ],
+        order: [['fecha_alerta', 'DESC']],
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      });
+      const totalPages = Math.ceil(alertas.count / limit);
+      logger.info(`Alertas del equipo ${equipo_id} obtenidas: ${alertas.rows.length}`);
+      res.json({
+        success: true,
+        data: alertas.rows,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: alertas.count,
+          totalPages
+        }
+      });
+    } catch (error) {
+      logger.error('Error al obtener alertas por equipo:', error);
+      next(error);
+    }
+  }
+}
+
+module.exports = new AlertasController(); 

@@ -1,64 +1,90 @@
 /**
- * @file backend/models/Usuario.js
- * @description Define el modelo de la tabla 'usuarios' en la base de datos.
- * Representa a los usuarios del sistema (administradores, técnicos, empleados).
+ * @file Modelo Usuario
+ * @description Modelo Sequelize para la tabla usuarios
  */
 
 const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
+const bcrypt = require('bcryptjs');
 
-module.exports = (sequelize) => {
-    const Usuario = sequelize.define('Usuario', {
-        id_usuario: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true,
-            comment: 'Identificador único del usuario'
+const Usuario = sequelize.define('Usuario', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        comment: 'Identificador único del usuario'
+    },
+    nombre: {
+        type: DataTypes.STRING(100),
+        allowNull: false,
+        comment: 'Nombre completo del usuario'
+    },
+    usuario: {
+        type: DataTypes.STRING(50),
+        allowNull: false,
+        unique: true,
+        comment: 'Nombre de usuario único para login'
+    },
+    correo: {
+        type: DataTypes.STRING(100),
+        allowNull: false,
+        unique: true,
+        validate: {
+            isEmail: true
         },
-        nombre_usuario: {
-            type: DataTypes.STRING(100),
-            allowNull: false,
-            unique: true, // El nombre de usuario debe ser único
-            comment: 'Nombre de usuario único'
+        comment: 'Correo electrónico único del usuario'
+    },
+    contraseña: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+        comment: 'Contraseña encriptada del usuario'
+    },
+    rol: {
+        type: DataTypes.ENUM('administrador', 'tecnico', 'usuario'),
+        allowNull: false,
+        defaultValue: 'usuario',
+        comment: 'Rol del usuario en el sistema'
+    },
+    fecha_registro: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+        comment: 'Fecha de registro del usuario'
+    },
+    activo: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        comment: 'Estado del usuario (activo/inactivo)'
+    }
+}, {
+    tableName: 'usuarios',
+    timestamps: true,
+    createdAt: 'fecha_registro',
+    updatedAt: false,
+    hooks: {
+        // Encriptar contraseña antes de guardar
+        beforeCreate: async (usuario) => {
+            if (usuario.contraseña) {
+                usuario.contraseña = await bcrypt.hash(usuario.contraseña, 10);
+            }
         },
-        contrasena_hash: {
-            type: DataTypes.STRING(255), // Almacena el hash de la contraseña
-            allowNull: false,
-            comment: 'Hash seguro de la contraseña'
-        },
-        rol: {
-            type: DataTypes.ENUM('administrador', 'empleado', 'tecnico'),
-            allowNull: false,
-            defaultValue: 'empleado', // Rol por defecto si no se especifica
-            comment: 'Rol del usuario en el sistema'
-        },
-        correo: {
-            type: DataTypes.STRING(100),
-            allowNull: false,
-            unique: true, // El correo electrónico debe ser único
-            comment: 'Correo electrónico único del usuario'
-        },
-        estado_activo: {
-            type: DataTypes.BOOLEAN,
-            allowNull: false,
-            defaultValue: true, // Por defecto, el usuario está activo
-            comment: 'Indica si la cuenta de usuario está activa'
-        },
-        fecha_creacion: {
-            type: DataTypes.DATE,
-            allowNull: false,
-            defaultValue: DataTypes.NOW,
-            comment: 'Fecha y hora en que se creó el usuario'
-        },
-        ultima_conexion: {
-            type: DataTypes.DATE,
-            allowNull: true,
-            comment: 'Fecha y hora de la última conexión del usuario'
+        beforeUpdate: async (usuario) => {
+            if (usuario.changed('contraseña')) {
+                usuario.contraseña = await bcrypt.hash(usuario.contraseña, 10);
+            }
         }
-    }, {
-        tableName: 'usuarios',
-        timestamps: false // No usa createdAt/updatedAt automáticamente
-    });
+    }
+});
 
-    // Las asociaciones se definirán en models/index.js para centralizarlas
-    return Usuario;
+// Método para comparar contraseñas
+Usuario.prototype.comparePassword = async function(candidatePassword) {
+    return await bcrypt.compare(candidatePassword, this.contraseña);
 };
+
+// Método para obtener datos públicos (sin contraseña)
+Usuario.prototype.toPublicJSON = function() {
+    const values = this.toJSON();
+    delete values.contraseña;
+    return values;
+};
+
+module.exports = Usuario; 

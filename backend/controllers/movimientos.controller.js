@@ -1,196 +1,266 @@
-/**
- * @file Controlador para la gestión de movimientos de equipos.
- * @description Maneja las operaciones de registro y consulta para la entidad Movimiento,
- * incluyendo asociaciones con Equipo, Usuario y Ubicacion.
- */
-
 const { Movimiento, Equipo, Usuario, Ubicacion } = require('../models');
-const { Op } = require('sequelize');
+const logger = require('../utils/logger');
 
 /**
- * @function registrarMovimiento
- * @description Registra un nuevo movimiento de equipo.
- * @param {object} req - Objeto de la petición. Se espera `req.body` con `id_equipo`, `tipo_movimiento`, `id_usuario_realiza_movimiento`, `id_ubicacion_anterior`, `id_ubicacion_actual`, etc.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
+ * Controlador para gestionar movimientos de equipos
  */
-exports.registrarMovimiento = async (req, res, next) => {
+class MovimientosController {
+  /**
+   * Obtener todos los movimientos con filtros y paginación
+   */
+  async getAll(req, res, next) {
     try {
-        const {
-            id_equipo,
-            tipo_movimiento,
-            observaciones,
-            id_usuario_realiza_movimiento,
-            id_usuario_anterior,
-            id_usuario_actual,
-            id_ubicacion_anterior,
-            id_ubicacion_actual
-        } = req.body;
+      const {
+        page = 1,
+        limit = 10,
+        equipo_id,
+        usuario_id,
+        ubicacion_origen_id,
+        ubicacion_destino_id,
+        fecha_inicio,
+        fecha_fin
+      } = req.query;
 
-        if (!id_equipo || !tipo_movimiento || !id_usuario_realiza_movimiento) {
-            return res.status(400).json({ message: 'Equipo, tipo de movimiento y usuario que realiza el movimiento son obligatorios.' });
-        }
+      const offset = (page - 1) * limit;
+      const where = {};
 
-        // Validar que el equipo y el usuario que realiza existen
-        const equipoExiste = await Equipo.findByPk(id_equipo);
-        if (!equipoExiste) {
-            return res.status(404).json({ message: `Equipo con ID ${id_equipo} no encontrado.` });
-        }
-        const usuarioRealizaExiste = await Usuario.findByPk(id_usuario_realiza_movimiento);
-        if (!usuarioRealizaExiste) {
-            return res.status(404).json({ message: `Usuario que realiza movimiento con ID ${id_usuario_realiza_movimiento} no encontrado.` });
-        }
+      if (equipo_id) where.equipo_id = equipo_id;
+      if (usuario_id) where.usuario_id = usuario_id;
+      if (ubicacion_origen_id) where.ubicacion_origen_id = ubicacion_origen_id;
+      if (ubicacion_destino_id) where.ubicacion_destino_id = ubicacion_destino_id;
 
-        // Validar existencia de FKs opcionales
-        if (id_usuario_anterior) {
-            const uaExiste = await Usuario.findByPk(id_usuario_anterior);
-            if (!uaExiste) return res.status(404).json({ message: `Usuario anterior con ID ${id_usuario_anterior} no encontrado.` });
-        }
-        if (id_usuario_actual) {
-            const uacExiste = await Usuario.findByPk(id_usuario_actual);
-            if (!uacExiste) return res.status(404).json({ message: `Usuario actual con ID ${id_usuario_actual} no encontrado.` });
-        }
-        if (id_ubicacion_anterior) {
-            const ubiExiste = await Ubicacion.findByPk(id_ubicacion_anterior);
-            if (!ubiExiste) return res.status(404).json({ message: `Ubicación anterior con ID ${id_ubicacion_anterior} no encontrada.` });
-        }
-        if (id_ubicacion_actual) {
-            const ubcExiste = await Ubicacion.findByPk(id_ubicacion_actual);
-            if (!ubcExiste) return res.status(404).json({ message: `Ubicación actual con ID ${id_ubicacion_actual} no encontrada.` });
-        }
+      if (fecha_inicio || fecha_fin) {
+        where.fecha_movimiento = {};
+        if (fecha_inicio) where.fecha_movimiento.$gte = new Date(fecha_inicio);
+        if (fecha_fin) where.fecha_movimiento.$lte = new Date(fecha_fin);
+      }
 
-        const nuevoMovimiento = await Movimiento.create({
-            id_equipo,
-            tipo_movimiento,
-            observaciones,
-            id_usuario_realiza_movimiento,
-            id_usuario_anterior,
-            id_usuario_actual,
-            id_ubicacion_anterior,
-            id_ubicacion_actual
-        });
+      const movimientos = await Movimiento.findAndCountAll({
+        where,
+        include: [
+          { model: Equipo, as: 'equipo', attributes: ['id', 'codigo', 'nombre'] },
+          { model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'apellido', 'email'] },
+          { model: Ubicacion, as: 'ubicacion_origen', attributes: ['id', 'nombre', 'descripcion'] },
+          { model: Ubicacion, as: 'ubicacion_destino', attributes: ['id', 'nombre', 'descripcion'] }
+        ],
+        order: [['fecha_movimiento', 'DESC']],
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      });
 
-        // Opcional: Actualizar el id_usuario_asignado o Ubicacionid del Equipo si es un movimiento de asignación/reubicación
-        if (tipo_movimiento === 'asignacion' && id_usuario_actual) {
-            equipoExiste.id_usuario_asignado = id_usuario_actual;
-            await equipoExiste.save();
-        }
-        if (tipo_movimiento === 'reubicacion' && id_ubicacion_actual) {
-            equipoExiste.Ubicacionid = id_ubicacion_actual;
-            await equipoExiste.save();
-        }
+      const totalPages = Math.ceil(movimientos.count / limit);
 
-        res.status(201).json({
-            message: 'Movimiento registrado exitosamente.',
-            movimiento: nuevoMovimiento
-        });
+      logger.info(`Movimientos obtenidos: ${movimientos.rows.length} de ${movimientos.count}`);
+
+      res.json({
+        success: true,
+        data: movimientos.rows,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: movimientos.count,
+          totalPages
+        }
+      });
     } catch (error) {
-        next(error);
+      logger.error('Error al obtener movimientos:', error);
+      next(error);
     }
-};
+  }
 
-/**
- * @function obtenerMovimientos
- * @description Obtiene todos los movimientos con sus relaciones, con opciones de filtrado.
- * @param {object} req - Objeto de la petición. Puede tener `req.query.equipoId`, `req.query.tipoMovimiento`, `req.query.usuarioRealizaId`, etc.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
- */
-exports.obtenerMovimientos = async (req, res, next) => {
+  /**
+   * Obtener movimiento por ID
+   */
+  async getById(req, res, next) {
     try {
-        const {
-            equipoId,
-            tipoMovimiento,
-            usuarioRealizaId,
-            usuarioAnteriorId,
-            usuarioActualId,
-            ubicacionAnteriorId,
-            ubicacionActualId,
-            fechaDesde,
-            fechaHasta
-        } = req.query;
-
-        const whereClause = {};
-
-        if (equipoId) whereClause.id_equipo = equipoId;
-        if (tipoMovimiento) whereClause.tipo_movimiento = tipoMovimiento;
-        if (usuarioRealizaId) whereClause.id_usuario_realiza_movimiento = usuarioRealizaId;
-        if (usuarioAnteriorId) whereClause.id_usuario_anterior = usuarioAnteriorId;
-        if (usuarioActualId) whereClause.id_usuario_actual = usuarioActualId;
-        if (ubicacionAnteriorId) whereClause.id_ubicacion_anterior = ubicacionAnteriorId;
-        if (ubicacionActualId) whereClause.id_ubicacion_actual = ubicacionActualId;
-
-        if (fechaDesde && fechaHasta) {
-            whereClause.fecha_movimiento = {
-                [Op.between]: [new Date(fechaDesde), new Date(fechaHasta)]
-            };
-        } else if (fechaDesde) {
-            whereClause.fecha_movimiento = {
-                [Op.gte]: new Date(fechaDesde)
-            };
-        } else if (fechaHasta) {
-            whereClause.fecha_movimiento = {
-                [Op.lte]: new Date(fechaHasta)
-            };
-        }
-
-        const movimientos = await Movimiento.findAll({
-            where: whereClause,
-            include: [
-                { model: Equipo, as: 'equipoInvolucradoEnMovimiento', attributes: ['id_equipo', 'nombre', 'numero_serie'] },
-                { model: Usuario, as: 'usuarioQueRealizoMovimiento', attributes: ['id_usuario', 'nombre_usuario'] },
-                { model: Usuario, as: 'usuarioAnteriorEnMovimiento', attributes: ['id_usuario', 'nombre_usuario'] },
-                { model: Usuario, as: 'usuarioActualEnMovimiento', attributes: ['id_usuario', 'nombre_usuario'] },
-                { model: Ubicacion, as: 'ubicacionOrigenDeMovimiento', attributes: ['id_ubicacion', 'nombre_ubicacion'] },
-                { model: Ubicacion, as: 'ubicacionDestinoDeMovimiento', attributes: ['id_ubicacion', 'nombre_ubicacion'] }
-            ],
-            order: [['fecha_movimiento', 'DESC']]
-        });
-
-        if (movimientos.length === 0) {
-            return res.status(404).json({ message: 'No se encontraron movimientos que coincidan con los criterios.' });
-        }
-
-        res.status(200).json({
-            message: 'Movimientos obtenidos exitosamente.',
-            total: movimientos.length,
-            movimientos: movimientos
-        });
+      const { id } = req.params;
+      const movimiento = await Movimiento.findByPk(id, {
+        include: [
+          { model: Equipo, as: 'equipo', attributes: ['id', 'codigo', 'nombre'] },
+          { model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'apellido', 'email'] },
+          { model: Ubicacion, as: 'ubicacion_origen', attributes: ['id', 'nombre', 'descripcion'] },
+          { model: Ubicacion, as: 'ubicacion_destino', attributes: ['id', 'nombre', 'descripcion'] }
+        ]
+      });
+      if (!movimiento) {
+        return res.status(404).json({ success: false, message: 'Movimiento no encontrado' });
+      }
+      logger.info(`Movimiento obtenido: ID ${id}`);
+      res.json({ success: true, data: movimiento });
     } catch (error) {
-        next(error);
+      logger.error('Error al obtener movimiento:', error);
+      next(error);
     }
-};
+  }
 
-/**
- * @function obtenerMovimientoPorId
- * @description Obtiene un movimiento específico por su ID.
- * @param {object} req - Objeto de la petición. Se espera `req.params.id`.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
- */
-exports.obtenerMovimientoPorId = async (req, res, next) => {
+  /**
+   * Crear nuevo movimiento
+   */
+  async create(req, res, next) {
     try {
-        const { id } = req.params;
-        const movimiento = await Movimiento.findByPk(id, {
-            include: [
-                { model: Equipo, as: 'equipoInvolucradoEnMovimiento', attributes: ['id_equipo', 'nombre', 'numero_serie'] },
-                { model: Usuario, as: 'usuarioQueRealizoMovimiento', attributes: ['id_usuario', 'nombre_usuario'] },
-                { model: Usuario, as: 'usuarioAnteriorEnMovimiento', attributes: ['id_usuario', 'nombre_usuario'] },
-                { model: Usuario, as: 'usuarioActualEnMovimiento', attributes: ['id_usuario', 'nombre_usuario'] },
-                { model: Ubicacion, as: 'ubicacionOrigenDeMovimiento', attributes: ['id_ubicacion', 'nombre_ubicacion'] },
-                { model: Ubicacion, as: 'ubicacionDestinoDeMovimiento', attributes: ['id_ubicacion', 'nombre_ubicacion'] }
-            ]
-        });
+      const {
+        equipo_id,
+        ubicacion_origen_id,
+        ubicacion_destino_id,
+        motivo,
+        observaciones
+      } = req.body;
 
-        if (!movimiento) {
-            return res.status(404).json({ message: 'Movimiento no encontrado.' });
-        }
+      // Validar que el equipo existe
+      const equipo = await Equipo.findByPk(equipo_id);
+      if (!equipo) {
+        return res.status(400).json({ success: false, message: 'El equipo especificado no existe' });
+      }
 
-        res.status(200).json({
-            message: 'Movimiento obtenido exitosamente.',
-            movimiento: movimiento
-        });
+      // Validar ubicaciones
+      const ubicacionOrigen = await Ubicacion.findByPk(ubicacion_origen_id);
+      const ubicacionDestino = await Ubicacion.findByPk(ubicacion_destino_id);
+      if (!ubicacionOrigen || !ubicacionDestino) {
+        return res.status(400).json({ success: false, message: 'Ubicación origen o destino no existe' });
+      }
+
+      // Asignar el usuario actual como responsable
+      const usuario_id = req.user.id;
+
+      const movimiento = await Movimiento.create({
+        equipo_id,
+        usuario_id,
+        ubicacion_origen_id,
+        ubicacion_destino_id,
+        motivo,
+        observaciones,
+        fecha_movimiento: new Date()
+      });
+
+      // Actualizar ubicación actual del equipo
+      await equipo.update({ ubicacion_id: ubicacion_destino_id });
+
+      logger.info(`Movimiento creado: ID ${movimiento.id} para equipo ${equipo_id}`);
+      res.status(201).json({ success: true, message: 'Movimiento registrado exitosamente', data: movimiento });
     } catch (error) {
-        next(error);
+      logger.error('Error al crear movimiento:', error);
+      next(error);
     }
-};
+  }
+
+  /**
+   * Actualizar movimiento
+   */
+  async update(req, res, next) {
+    try {
+      const { id } = req.params;
+      const {
+        ubicacion_origen_id,
+        ubicacion_destino_id,
+        motivo,
+        observaciones
+      } = req.body;
+
+      const movimiento = await Movimiento.findByPk(id, {
+        include: [{ model: Equipo, as: 'equipo' }]
+      });
+      if (!movimiento) {
+        return res.status(404).json({ success: false, message: 'Movimiento no encontrado' });
+      }
+
+      // Solo admin o el usuario que registró el movimiento puede actualizar
+      if (req.user.rol !== 'admin' && movimiento.usuario_id !== req.user.id) {
+        return res.status(403).json({ success: false, message: 'No tienes permisos para actualizar este movimiento' });
+      }
+
+      // Validar ubicaciones si se actualizan
+      if (ubicacion_origen_id) {
+        const ubicacionOrigen = await Ubicacion.findByPk(ubicacion_origen_id);
+        if (!ubicacionOrigen) {
+          return res.status(400).json({ success: false, message: 'Ubicación origen no existe' });
+        }
+      }
+      if (ubicacion_destino_id) {
+        const ubicacionDestino = await Ubicacion.findByPk(ubicacion_destino_id);
+        if (!ubicacionDestino) {
+          return res.status(400).json({ success: false, message: 'Ubicación destino no existe' });
+        }
+      }
+
+      await movimiento.update({
+        ubicacion_origen_id,
+        ubicacion_destino_id,
+        motivo,
+        observaciones
+      });
+
+      // Si se cambió la ubicación destino, actualizar el equipo
+      if (ubicacion_destino_id) {
+        await movimiento.equipo.update({ ubicacion_id: ubicacion_destino_id });
+      }
+
+      logger.info(`Movimiento actualizado: ID ${id}`);
+      res.json({ success: true, message: 'Movimiento actualizado exitosamente', data: movimiento });
+    } catch (error) {
+      logger.error('Error al actualizar movimiento:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Eliminar movimiento
+   */
+  async delete(req, res, next) {
+    try {
+      const { id } = req.params;
+      const movimiento = await Movimiento.findByPk(id);
+      if (!movimiento) {
+        return res.status(404).json({ success: false, message: 'Movimiento no encontrado' });
+      }
+      // Solo admin puede eliminar movimientos
+      if (req.user.rol !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Solo los administradores pueden eliminar movimientos' });
+      }
+      await movimiento.destroy();
+      logger.info(`Movimiento eliminado: ID ${id}`);
+      res.json({ success: true, message: 'Movimiento eliminado exitosamente' });
+    } catch (error) {
+      logger.error('Error al eliminar movimiento:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Obtener movimientos por equipo
+   */
+  async getByEquipo(req, res, next) {
+    try {
+      const { equipo_id } = req.params;
+      const { page = 1, limit = 10 } = req.query;
+      const offset = (page - 1) * limit;
+      const movimientos = await Movimiento.findAndCountAll({
+        where: { equipo_id },
+        include: [
+          { model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'apellido', 'email'] },
+          { model: Ubicacion, as: 'ubicacion_origen', attributes: ['id', 'nombre', 'descripcion'] },
+          { model: Ubicacion, as: 'ubicacion_destino', attributes: ['id', 'nombre', 'descripcion'] }
+        ],
+        order: [['fecha_movimiento', 'DESC']],
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      });
+      const totalPages = Math.ceil(movimientos.count / limit);
+      logger.info(`Movimientos del equipo ${equipo_id} obtenidos: ${movimientos.rows.length}`);
+      res.json({
+        success: true,
+        data: movimientos.rows,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: movimientos.count,
+          totalPages
+        }
+      });
+    } catch (error) {
+      logger.error('Error al obtener movimientos por equipo:', error);
+      next(error);
+    }
+  }
+}
+
+module.exports = new MovimientosController(); 

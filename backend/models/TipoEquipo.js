@@ -1,35 +1,38 @@
 /**
- * @file backend/models/TipoEquipo.js
- * @description Define el modelo de la tabla 'tipos_equipo' en la base de datos.
- * Representa los diferentes tipos de equipos que pueden existir en el inventario.
+ * @file Modelo TipoEquipo
+ * @description Modelo Sequelize para la tabla tipo_equipo
  */
 
 const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
-module.exports = (sequelize) => {
-    const TipoEquipo = sequelize.define('TipoEquipo', {
-        id_tipo_equipo: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true,
-            comment: 'Identificador único del tipo de equipo'
-        },
-        nombre_tipo: {
-            type: DataTypes.STRING(100),
-            allowNull: false,
-            unique: true, // El nombre del tipo debe ser único
-            comment: 'Nombre del tipo de equipo (ej. "Laptop", "Monitor", "Impresora")'
-        },
-        descripcion: {
-            type: DataTypes.TEXT,
-            allowNull: true,
-            comment: 'Descripción detallada del tipo de equipo'
-        }
-    }, {
-        tableName: 'tipos_equipo',
-        timestamps: false // No usa createdAt/updatedAt automáticamente
-    });
+const TipoEquipo = sequelize.define('TipoEquipo', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        comment: 'Identificador único del tipo de equipo'
+    },
+    nombre: {
+        type: DataTypes.STRING(100),
+        allowNull: false,
+        comment: 'Nombre del tipo de equipo'
+    },
+    descripcion: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Descripción detallada del tipo de equipo'
+    },
+    activo: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        comment: 'Estado del tipo de equipo (activo/inactivo)'
+    }
+}, {
+    tableName: 'tipo_equipo',
+    timestamps: true,
+    createdAt: false,
+    updatedAt: false
+});
 
-    // Las asociaciones se definirán en models/index.js para centralizarlas
-    return TipoEquipo;
-};
+module.exports = TipoEquipo; 

@@ -1,48 +1,50 @@
 /**
- * @file Rutas para la gestión de tipos de equipo.
- * @description Define las rutas para las operaciones CRUD de la entidad TipoEquipo.
- * Requiere autenticación y autorización para la mayoría de las operaciones.
+ * @file Rutas de Tipos de Equipo
+ * @description Define las rutas CRUD para tipos de equipo con permisos por roles
  */
 
 const express = require('express');
+const router = express.Router();
 const tipoEquipoController = require('../controllers/tipo_equipo.controller');
 const { verifyToken, checkRole } = require('../middleware/auth');
 
-const router = express.Router();
+// =====================================================
+// RUTAS PROTEGIDAS - Requieren autenticación
+// =====================================================
 
 /**
- * @route POST /api/tipos-equipo
- * @description Crea un nuevo tipo de equipo. Solo accesible por administradores.
- * @access Private (Admin only)
- */
-router.post('/', verifyToken, checkRole(['administrador']), tipoEquipoController.crearTipoEquipo);
-
-/**
- * @route GET /api/tipos-equipo
- * @description Obtiene todos los tipos de equipo. Accesible por todos los usuarios autenticados.
- * @access Private (All authenticated users)
+ * @route GET /api/tipo-equipo
+ * @description Obtener todos los tipos de equipo activos
+ * @access Private - Todos los roles
  */
 router.get('/', verifyToken, tipoEquipoController.obtenerTiposEquipo);
 
 /**
- * @route GET /api/tipos-equipo/:id
- * @description Obtiene un tipo de equipo por su ID. Accesible por todos los usuarios autenticados.
- * @access Private (All authenticated users)
+ * @route GET /api/tipo-equipo/:id
+ * @description Obtener un tipo de equipo específico por ID
+ * @access Private - Todos los roles
  */
 router.get('/:id', verifyToken, tipoEquipoController.obtenerTipoEquipoPorId);
 
 /**
- * @route PUT /api/tipos-equipo/:id
- * @description Actualiza un tipo de equipo por su ID. Solo accesible por administradores.
- * @access Private (Admin only)
+ * @route POST /api/tipo-equipo
+ * @description Crear un nuevo tipo de equipo
+ * @access Private - Solo Administradores
+ */
+router.post('/', verifyToken, checkRole(['administrador']), tipoEquipoController.crearTipoEquipo);
+
+/**
+ * @route PUT /api/tipo-equipo/:id
+ * @description Actualizar un tipo de equipo existente
+ * @access Private - Solo Administradores
  */
 router.put('/:id', verifyToken, checkRole(['administrador']), tipoEquipoController.actualizarTipoEquipo);
 
 /**
- * @route DELETE /api/tipos-equipo/:id
- * @description Elimina un tipo de equipo por su ID. Solo accesible por administradores.
- * @access Private (Admin only)
+ * @route DELETE /api/tipo-equipo/:id
+ * @description Eliminar un tipo de equipo
+ * @access Private - Solo Administradores
  */
 router.delete('/:id', verifyToken, checkRole(['administrador']), tipoEquipoController.eliminarTipoEquipo);
 
-module.exports = router;
+module.exports = router; 

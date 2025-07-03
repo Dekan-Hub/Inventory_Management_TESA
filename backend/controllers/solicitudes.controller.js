@@ -1,215 +1,175 @@
-/**
- * @file Controlador para la gestión de solicitudes de equipos.
- * @description Maneja las operaciones de creación, consulta y actualización de estado de solicitudes,
- * incluyendo asociaciones con Usuario y Equipo.
- */
-
 const { Solicitud, Usuario, Equipo } = require('../models');
-const { Op } = require('sequelize');
+const logger = require('../utils/logger');
 
-/**
- * @function crearSolicitud
- * @description Crea una nueva solicitud de equipo.
- * @param {object} req - Objeto de la petición. Se espera `req.body` con `tipo_solicitud`, `descripcion`, `id_usuario_solicitante`, `id_equipo_solicitado`.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
- */
-exports.crearSolicitud = async (req, res, next) => {
+class SolicitudesController {
+  async getAll(req, res, next) {
     try {
-        const { tipo_solicitud, descripcion, id_usuario_solicitante, id_equipo_solicitado } = req.body;
-
-        if (!tipo_solicitud || !descripcion || !id_usuario_solicitante) {
-            return res.status(400).json({ message: 'Tipo de solicitud, descripción y usuario solicitante son obligatorios.' });
+      const {
+        page = 1,
+        limit = 10,
+        usuario_id,
+        equipo_id,
+        estado,
+        tipo,
+        fecha_inicio,
+        fecha_fin
+      } = req.query;
+      const offset = (page - 1) * limit;
+      const where = {};
+      if (usuario_id) where.usuario_id = usuario_id;
+      if (equipo_id) where.equipo_id = equipo_id;
+      if (estado) where.estado = estado;
+      if (tipo) where.tipo = tipo;
+      if (fecha_inicio || fecha_fin) {
+        where.fecha_solicitud = {};
+        if (fecha_inicio) where.fecha_solicitud.$gte = new Date(fecha_inicio);
+        if (fecha_fin) where.fecha_solicitud.$lte = new Date(fecha_fin);
+      }
+      const solicitudes = await Solicitud.findAndCountAll({
+        where,
+        include: [
+          { model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'apellido', 'email'] },
+          { model: Equipo, as: 'equipo', attributes: ['id', 'codigo', 'nombre'] }
+        ],
+        order: [['fecha_solicitud', 'DESC']],
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      });
+      const totalPages = Math.ceil(solicitudes.count / limit);
+      logger.info(`Solicitudes obtenidas: ${solicitudes.rows.length} de ${solicitudes.count}`);
+      res.json({
+        success: true,
+        data: solicitudes.rows,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: solicitudes.count,
+          totalPages
         }
-
-        // Validar que el usuario solicitante existe
-        const solicitanteExiste = await Usuario.findByPk(id_usuario_solicitante);
-        if (!solicitanteExiste) {
-            return res.status(404).json({ message: `Usuario solicitante con ID ${id_usuario_solicitante} no encontrado.` });
-        }
-
-        // Si se asocia un equipo, validar que existe
-        if (id_equipo_solicitado) {
-            const equipoExiste = await Equipo.findByPk(id_equipo_solicitado);
-            if (!equipoExiste) {
-                return res.status(404).json({ message: `Equipo solicitado con ID ${id_equipo_solicitado} no encontrado.` });
-            }
-        }
-
-        const nuevaSolicitud = await Solicitud.create({
-            tipo_solicitud,
-            descripcion,
-            id_usuario_solicitante,
-            id_equipo_solicitado
-        });
-
-        res.status(201).json({
-            message: 'Solicitud creada exitosamente.',
-            solicitud: nuevaSolicitud
-        });
+      });
     } catch (error) {
-        next(error);
+      logger.error('Error al obtener solicitudes:', error);
+      next(error);
     }
-};
+  }
 
-/**
- * @function obtenerSolicitudes
- * @description Obtiene todas las solicitudes con sus relaciones, con opciones de filtrado.
- * @param {object} req - Objeto de la petición. Puede tener `req.query.estado`, `req.query.tipoSolicitud`, `req.query.usuarioId`, `req.query.resolutorId`, etc.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
- * @param {boolean} [returnOnlyData=false] - Si es true, la función devuelve los datos en lugar de enviar una respuesta HTTP.
- */
-exports.obtenerSolicitudes = async (req, res, next, returnOnlyData = false) => {
+  async getById(req, res, next) {
     try {
-        const { estado, tipoSolicitud, usuarioId, resolutorId, equipoId } = req.query;
-        const whereClause = {};
-
-        if (estado) whereClause.estado_solicitud = estado;
-        if (tipoSolicitud) whereClause.tipo_solicitud = tipoSolicitud;
-        if (usuarioId) whereClause.id_usuario_solicitante = usuarioId; // Para "mis solicitudes"
-        if (resolutorId) whereClause.id_usuario_resolutor = resolutorId;
-        if (equipoId) whereClause.id_equipo_solicitado = equipoId;
-
-        const solicitudes = await Solicitud.findAll({
-            where: whereClause,
-            include: [
-                { model: Usuario, as: 'solicitanteDeLaSolicitud', attributes: ['id_usuario', 'nombre_usuario', 'correo'] },
-                { model: Usuario, as: 'resolutorDeLaSolicitud', attributes: ['id_usuario', 'nombre_usuario', 'correo'] },
-                { model: Equipo, as: 'equipoSolicitadoEnSolicitud', attributes: ['id_equipo', 'nombre', 'numero_serie'] }
-            ],
-            order: [['fecha_solicitud', 'DESC']]
-        });
-
-        if (solicitudes.length === 0) {
-            if (returnOnlyData) return null;
-            return res.status(404).json({ message: 'No se encontraron solicitudes que coincidan con los criterios.' });
-        }
-
-        if (returnOnlyData) return solicitudes;
-
-        res.status(200).json({
-            message: 'Solicitudes obtenidas exitosamente.',
-            total: solicitudes.length,
-            solicitudes: solicitudes
-        });
+      const { id } = req.params;
+      const solicitud = await Solicitud.findByPk(id, {
+        include: [
+          { model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'apellido', 'email'] },
+          { model: Equipo, as: 'equipo', attributes: ['id', 'codigo', 'nombre'] }
+        ]
+      });
+      if (!solicitud) {
+        return res.status(404).json({ success: false, message: 'Solicitud no encontrada' });
+      }
+      logger.info(`Solicitud obtenida: ID ${id}`);
+      res.json({ success: true, data: solicitud });
     } catch (error) {
-        next(error);
+      logger.error('Error al obtener solicitud:', error);
+      next(error);
     }
-};
+  }
 
-
-/**
- * @function obtenerSolicitudPorId
- * @description Obtiene una solicitud específica por su ID.
- * @param {object} req - Objeto de la petición. Se espera `req.params.id`.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
- */
-exports.obtenerSolicitudPorId = async (req, res, next) => {
+  async create(req, res, next) {
     try {
-        const { id } = req.params;
-        const solicitud = await Solicitud.findByPk(id, {
-            include: [
-                { model: Usuario, as: 'solicitanteDeLaSolicitud', attributes: ['id_usuario', 'nombre_usuario', 'correo'] },
-                { model: Usuario, as: 'resolutorDeLaSolicitud', attributes: ['id_usuario', 'nombre_usuario', 'correo'] },
-                { model: Equipo, as: 'equipoSolicitadoEnSolicitud', attributes: ['id_equipo', 'nombre', 'numero_serie'] }
-            ]
-        });
-
-        if (!solicitud) {
-            return res.status(404).json({ message: 'Solicitud no encontrada.' });
-        }
-
-        // Autorización adicional: Solo el solicitante, el resolutor o un admin/tecnico puede ver la solicitud
-        if (req.user.rol !== 'administrador' && req.user.rol !== 'tecnico' &&
-            req.user.id_usuario !== solicitud.id_usuario_solicitante &&
-            req.user.id_usuario !== solicitud.id_usuario_resolutor) {
-            return res.status(403).json({ message: 'Acceso denegado. No tiene permisos para ver esta solicitud.' });
-        }
-
-        res.status(200).json({
-            message: 'Solicitud obtenida exitosamente.',
-            solicitud: solicitud
-        });
+      const { equipo_id, tipo, descripcion } = req.body;
+      const usuario_id = req.user.id;
+      // Validar equipo
+      const equipo = await Equipo.findByPk(equipo_id);
+      if (!equipo) {
+        return res.status(400).json({ success: false, message: 'El equipo especificado no existe' });
+      }
+      const solicitud = await Solicitud.create({
+        usuario_id,
+        equipo_id,
+        tipo,
+        descripcion,
+        estado: 'pendiente',
+        fecha_solicitud: new Date()
+      });
+      logger.info(`Solicitud creada: ID ${solicitud.id} para equipo ${equipo_id}`);
+      res.status(201).json({ success: true, message: 'Solicitud creada exitosamente', data: solicitud });
     } catch (error) {
-        next(error);
+      logger.error('Error al crear solicitud:', error);
+      next(error);
     }
-};
+  }
 
-/**
- * @function actualizarEstadoSolicitud
- * @description Actualiza el estado de una solicitud.
- * @param {object} req - Objeto de la petición. Se espera `req.params.id` y `req.body` con `estado_solicitud`, `observaciones_resolutor`, `id_usuario_resolutor`.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
- */
-exports.actualizarEstadoSolicitud = async (req, res, next) => {
+  async update(req, res, next) {
     try {
-        const { id } = req.params;
-        const { estado_solicitud, observaciones_resolutor, id_usuario_resolutor } = req.body;
-
-        const solicitud = await Solicitud.findByPk(id);
-
-        if (!solicitud) {
-            return res.status(404).json({ message: 'Solicitud no encontrada.' });
-        }
-
-        // Validar que el nuevo estado es válido
-        const estadosValidos = ['pendiente', 'en_proceso', 'completada', 'rechazada'];
-        if (estado_solicitud && !estadosValidos.includes(estado_solicitud)) {
-            return res.status(400).json({ message: 'Estado de solicitud no válido.' });
-        }
-
-        // Validar que el resolutor existe si se proporciona
-        if (id_usuario_resolutor) {
-            const resolutorExiste = await Usuario.findByPk(id_usuario_resolutor);
-            if (!resolutorExiste) {
-                return res.status(404).json({ message: `Usuario resolutor con ID ${id_usuario_resolutor} no encontrado.` });
-            }
-        }
-
-        solicitud.estado_solicitud = estado_solicitud || solicitud.estado_solicitud;
-        solicitud.observaciones_resolutor = observaciones_resolutor || solicitud.observaciones_resolutor;
-        solicitud.id_usuario_resolutor = id_usuario_resolutor || solicitud.id_usuario_resolutor;
-
-        // Si la solicitud se completa o rechaza, registrar la fecha de resolución
-        if (estado_solicitud === 'completada' || estado_solicitud === 'rechazada') {
-            solicitud.fecha_resolucion = new Date();
-        }
-
-        await solicitud.save();
-
-        res.status(200).json({
-            message: 'Estado de solicitud actualizado exitosamente.',
-            solicitud: solicitud
-        });
+      const { id } = req.params;
+      const { tipo, descripcion, estado } = req.body;
+      const solicitud = await Solicitud.findByPk(id);
+      if (!solicitud) {
+        return res.status(404).json({ success: false, message: 'Solicitud no encontrada' });
+      }
+      // Solo admin o el usuario que creó la solicitud puede actualizar
+      if (req.user.rol !== 'admin' && solicitud.usuario_id !== req.user.id) {
+        return res.status(403).json({ success: false, message: 'No tienes permisos para actualizar esta solicitud' });
+      }
+      await solicitud.update({ tipo, descripcion, estado });
+      logger.info(`Solicitud actualizada: ID ${id}`);
+      res.json({ success: true, message: 'Solicitud actualizada exitosamente', data: solicitud });
     } catch (error) {
-        next(error);
+      logger.error('Error al actualizar solicitud:', error);
+      next(error);
     }
-};
+  }
 
-/**
- * @function eliminarSolicitud
- * @description Elimina una solicitud por su ID. Solo accesible por administradores.
- * @param {object} req - Objeto de la petición. Se espera `req.params.id`.
- * @param {object} res - Objeto de la respuesta.
- * @param {function} next - Función para pasar al siguiente middleware.
- */
-exports.eliminarSolicitud = async (req, res, next) => {
+  async delete(req, res, next) {
     try {
-        const { id } = req.params;
-
-        const solicitud = await Solicitud.findByPk(id);
-
-        if (!solicitud) {
-            return res.status(404).json({ message: 'Solicitud no encontrada.' });
-        }
-
-        await solicitud.destroy();
-
-        res.status(200).json({ message: 'Solicitud eliminada exitosamente.' });
+      const { id } = req.params;
+      const solicitud = await Solicitud.findByPk(id);
+      if (!solicitud) {
+        return res.status(404).json({ success: false, message: 'Solicitud no encontrada' });
+      }
+      // Solo admin puede eliminar solicitudes
+      if (req.user.rol !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Solo los administradores pueden eliminar solicitudes' });
+      }
+      await solicitud.destroy();
+      logger.info(`Solicitud eliminada: ID ${id}`);
+      res.json({ success: true, message: 'Solicitud eliminada exitosamente' });
     } catch (error) {
-        next(error);
+      logger.error('Error al eliminar solicitud:', error);
+      next(error);
     }
-};
+  }
+
+  async getByUsuario(req, res, next) {
+    try {
+      const { usuario_id } = req.params;
+      const { page = 1, limit = 10 } = req.query;
+      const offset = (page - 1) * limit;
+      const solicitudes = await Solicitud.findAndCountAll({
+        where: { usuario_id },
+        include: [
+          { model: Equipo, as: 'equipo', attributes: ['id', 'codigo', 'nombre'] }
+        ],
+        order: [['fecha_solicitud', 'DESC']],
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      });
+      const totalPages = Math.ceil(solicitudes.count / limit);
+      logger.info(`Solicitudes del usuario ${usuario_id} obtenidas: ${solicitudes.rows.length}`);
+      res.json({
+        success: true,
+        data: solicitudes.rows,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: solicitudes.count,
+          totalPages
+        }
+      });
+    } catch (error) {
+      logger.error('Error al obtener solicitudes por usuario:', error);
+      next(error);
+    }
+  }
+}
+
+module.exports = new SolicitudesController(); 

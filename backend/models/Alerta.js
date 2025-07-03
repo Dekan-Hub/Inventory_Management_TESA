@@ -1,22 +1,53 @@
 /**
- * @file backend/middleware/validators/handleValidation.js
- * @description Middleware para capturar y formatear errores de validación de express-validator.
+ * @file Modelo Alerta
+ * @description Modelo Sequelize para la tabla alertas
  */
 
-const { validationResult } = require('express-validator');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
-// Middleware para manejar los resultados de la validación
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    // Si hay errores, enviar una respuesta 400 con los detalles de los errores
-    return res.status(400).json({
-      success: false,
-      message: 'Errores de validación',
-      errors: errors.array()
-    });
-  }
-  next(); // Si no hay errores, pasar al siguiente middleware o ruta
-};
+const Alerta = sequelize.define('Alerta', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        comment: 'Identificador único de la alerta'
+    },
+    usuario_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'FK: ID del usuario destinatario'
+    },
+    tipo_alerta: {
+        type: DataTypes.ENUM('mantenimiento', 'movimiento', 'solicitud', 'sistema'),
+        allowNull: false,
+        comment: 'Tipo de alerta'
+    },
+    titulo: {
+        type: DataTypes.STRING(200),
+        allowNull: false,
+        comment: 'Título de la alerta'
+    },
+    mensaje: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+        comment: 'Mensaje de la alerta'
+    },
+    fecha_envio: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+        comment: 'Fecha de envío de la alerta'
+    },
+    leida: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Estado de lectura de la alerta'
+    }
+}, {
+    tableName: 'alertas',
+    timestamps: true,
+    createdAt: 'fecha_envio',
+    updatedAt: false
+});
 
-module.exports = handleValidationErrors;
+module.exports = Alerta; 

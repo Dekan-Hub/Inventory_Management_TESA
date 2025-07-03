@@ -1,55 +1,68 @@
 /**
- * @file backend/models/Mantenimiento.js
- * @description Define el modelo de la tabla 'mantenimientos' en la base de datos.
- * Representa los registros de mantenimientos realizados a los equipos.
+ * @file Modelo Mantenimiento
+ * @description Modelo Sequelize para la tabla mantenimientos
  */
 
 const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
-module.exports = (sequelize) => {
-    const Mantenimiento = sequelize.define('Mantenimiento', {
-        id_mantenimiento: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true,
-            comment: 'Identificador único del registro de mantenimiento'
-        },
-        fecha_mantenimiento: {
-            type: DataTypes.DATE,
-            allowNull: false,
-            defaultValue: DataTypes.NOW,
-            comment: 'Fecha y hora en que se realizó el mantenimiento'
-        },
-        descripcion_problema: {
-            type: DataTypes.TEXT,
-            allowNull: true,
-            comment: 'Descripción del problema que motivó el mantenimiento'
-        },
-        solucion_aplicada: {
-            type: DataTypes.TEXT,
-            allowNull: true,
-            comment: 'Descripción de la solución o acciones realizadas'
-        },
-        costo_mantenimiento: {
-            type: DataTypes.DECIMAL(10, 2),
-            allowNull: true,
-            comment: 'Costo asociado a este mantenimiento'
-        },
-        id_equipo: { // Clave foránea al equipo al que se le dio mantenimiento
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            comment: 'ID del equipo al que se realizó el mantenimiento (FK de equipos)'
-        },
-        id_tecnico: { // Clave foránea al usuario que realizó el mantenimiento
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            comment: 'ID del técnico o usuario que realizó el mantenimiento (FK de usuarios)'
-        }
-    }, {
-        tableName: 'mantenimientos',
-        timestamps: false // No usa createdAt/updatedAt automáticamente
-    });
+const Mantenimiento = sequelize.define('Mantenimiento', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        comment: 'Identificador único del mantenimiento'
+    },
+    equipo_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'FK: ID del equipo'
+    },
+    tipo_mantenimiento: {
+        type: DataTypes.ENUM('preventivo', 'correctivo', 'calibracion'),
+        allowNull: false,
+        comment: 'Tipo de mantenimiento'
+    },
+    descripcion: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+        comment: 'Descripción del mantenimiento'
+    },
+    fecha_mantenimiento: {
+        type: DataTypes.DATEONLY,
+        allowNull: false,
+        comment: 'Fecha del mantenimiento'
+    },
+    tecnico_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'FK: ID del técnico responsable'
+    },
+    costo: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        comment: 'Costo del mantenimiento'
+    },
+    observaciones: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Observaciones adicionales'
+    },
+    estado: {
+        type: DataTypes.ENUM('programado', 'en_proceso', 'completado', 'cancelado'),
+        defaultValue: 'programado',
+        comment: 'Estado del mantenimiento'
+    },
+    fecha_registro: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+        comment: 'Fecha de registro del mantenimiento'
+    }
+}, {
+    tableName: 'mantenimientos',
+    timestamps: true,
+    createdAt: 'fecha_registro',
+    updatedAt: false
+});
 
-    // Las asociaciones se definirán en models/index.js para centralizarlas
-    return Mantenimiento;
-};
+module.exports = Mantenimiento; 

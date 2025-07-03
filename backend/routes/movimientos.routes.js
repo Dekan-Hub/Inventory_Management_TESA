@@ -1,34 +1,53 @@
-/**
- * @file Rutas para la gestión de movimientos de equipos.
- * @description Define las rutas para el registro y consulta de movimientos.
- * Requiere autenticación y autorización para la mayoría de las operaciones.
- */
-
 const express = require('express');
-const movimientoController = require('../controllers/movimientos.controller');
-const { verifyToken, checkRole } = require('../middleware/auth');
-
 const router = express.Router();
+const movimientosController = require('../controllers/movimientos.controller');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 /**
- * @route POST /api/movimientos
- * @description Registra un nuevo movimiento de equipo. Solo accesible por administradores y técnicos.
- * @access Private (Admin, Tecnico)
+ * Rutas para gestión de movimientos
+ * Base: /api/movimientos
  */
-router.post('/', verifyToken, checkRole(['administrador', 'tecnico']), movimientoController.registrarMovimiento);
 
-/**
- * @route GET /api/movimientos
- * @description Obtiene todos los movimientos. Accesible por administradores y técnicos.
- * @access Private (Admin, Tecnico)
- */
-router.get('/', verifyToken, checkRole(['administrador', 'tecnico']), movimientoController.obtenerMovimientos);
+// Obtener todos los movimientos (con filtros y paginación)
+router.get('/', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico', 'usuario']), 
+  movimientosController.getAll
+);
 
-/**
- * @route GET /api/movimientos/:id
- * @description Obtiene un movimiento por su ID. Accesible por administradores y técnicos.
- * @access Private (Admin, Tecnico)
- */
-router.get('/:id', verifyToken, checkRole(['administrador', 'tecnico']), movimientoController.obtenerMovimientoPorId);
+// Obtener movimiento por ID
+router.get('/:id', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico', 'usuario']), 
+  movimientosController.getById
+);
 
-module.exports = router;
+// Crear nuevo movimiento
+router.post('/', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico']), 
+  movimientosController.create
+);
+
+// Actualizar movimiento
+router.put('/:id', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico']), 
+  movimientosController.update
+);
+
+// Eliminar movimiento
+router.delete('/:id', 
+  authenticateToken, 
+  authorizeRoles(['admin']), 
+  movimientosController.delete
+);
+
+// Obtener movimientos por equipo
+router.get('/equipo/:equipo_id', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico', 'usuario']), 
+  movimientosController.getByEquipo
+);
+
+module.exports = router; 

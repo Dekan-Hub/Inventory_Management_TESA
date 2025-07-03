@@ -1,48 +1,60 @@
-/**
- * @file Rutas para la gestión de mantenimientos.
- * @description Define las rutas para las operaciones CRUD de la entidad Mantenimiento.
- * Requiere autenticación y autorización para la mayoría de las operaciones.
- */
-
 const express = require('express');
-const mantenimientoController = require('../controllers/mantenimientos.controller');
-const { verifyToken, checkRole } = require('../middleware/auth');
-
 const router = express.Router();
+const mantenimientosController = require('../controllers/mantenimientos.controller');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 /**
- * @route POST /api/mantenimientos
- * @description Registra un nuevo mantenimiento. Solo accesible por administradores y técnicos.
- * @access Private (Admin, Tecnico)
+ * Rutas para gestión de mantenimientos
+ * Base: /api/mantenimientos
  */
-router.post('/', verifyToken, checkRole(['administrador', 'tecnico']), mantenimientoController.crearMantenimiento);
 
-/**
- * @route GET /api/mantenimientos
- * @description Obtiene todos los mantenimientos. Accesible por administradores y técnicos.
- * @access Private (Admin, Tecnico)
- */
-router.get('/', verifyToken, checkRole(['administrador', 'tecnico']), mantenimientoController.obtenerMantenimientos);
+// Obtener todos los mantenimientos (con filtros y paginación)
+router.get('/', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico', 'usuario']), 
+  mantenimientosController.getAll
+);
 
-/**
- * @route GET /api/mantenimientos/:id
- * @description Obtiene un mantenimiento por su ID. Accesible por administradores y técnicos.
- * @access Private (Admin, Tecnico)
- */
-router.get('/:id', verifyToken, checkRole(['administrador', 'tecnico']), mantenimientoController.obtenerMantenimientoPorId);
+// Obtener mantenimiento por ID
+router.get('/:id', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico', 'usuario']), 
+  mantenimientosController.getById
+);
 
-/**
- * @route PUT /api/mantenimientos/:id
- * @description Actualiza un mantenimiento por su ID. Solo accesible por administradores y técnicos.
- * @access Private (Admin, Tecnico)
- */
-router.put('/:id', verifyToken, checkRole(['administrador', 'tecnico']), mantenimientoController.actualizarMantenimiento);
+// Crear nuevo mantenimiento
+router.post('/', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico']), 
+  mantenimientosController.create
+);
 
-/**
- * @route DELETE /api/mantenimientos/:id
- * @description Elimina un mantenimiento por su ID. Solo accesible por administradores.
- * @access Private (Admin only)
- */
-router.delete('/:id', verifyToken, checkRole(['administrador']), mantenimientoController.eliminarMantenimiento);
+// Actualizar mantenimiento
+router.put('/:id', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico']), 
+  mantenimientosController.update
+);
 
-module.exports = router;
+// Eliminar mantenimiento
+router.delete('/:id', 
+  authenticateToken, 
+  authorizeRoles(['admin']), 
+  mantenimientosController.delete
+);
+
+// Obtener estadísticas de mantenimientos
+router.get('/stats/estadisticas', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico']), 
+  mantenimientosController.getStats
+);
+
+// Obtener mantenimientos por equipo
+router.get('/equipo/:equipo_id', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico', 'usuario']), 
+  mantenimientosController.getByEquipo
+);
+
+module.exports = router; 

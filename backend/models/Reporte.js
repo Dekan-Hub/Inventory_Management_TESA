@@ -1,45 +1,58 @@
 /**
- * @file backend/models/Reporte.js
- * @description Define el modelo de la tabla 'reportes' en la base de datos.
- * Representa los reportes generados por el sistema.
+ * @file Modelo Reporte
+ * @description Modelo Sequelize para la tabla reportes
  */
 
 const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
-module.exports = (sequelize) => {
-    const Reporte = sequelize.define('Reporte', {
-        id_reporte: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true,
-            comment: 'Identificador único del reporte'
-        },
-        tipo_reporte: {
-            type: DataTypes.STRING(100),
-            allowNull: false,
-            comment: 'Tipo de reporte (ej. "Inventario General", "Historial Mantenimientos")'
-        },
-        fecha_generacion: {
-            type: DataTypes.DATE,
-            allowNull: false,
-            defaultValue: DataTypes.NOW,
-            comment: 'Fecha y hora en que se generó el reporte'
-        },
-        datos_json: {
-            type: DataTypes.JSON, // Almacena los datos del reporte en formato JSON
-            allowNull: true,
-            comment: 'Contenido del reporte en formato JSON'
-        },
-        id_usuario_genera: { // Clave foránea al usuario que generó el reporte
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            comment: 'ID del usuario que generó el reporte (FK de usuarios)'
-        }
-    }, {
-        tableName: 'reportes',
-        timestamps: false // No usa createdAt/updatedAt automáticamente
-    });
+const Reporte = sequelize.define('Reporte', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        comment: 'Identificador único del reporte'
+    },
+    tipo_reporte: {
+        type: DataTypes.ENUM('inventario', 'mantenimientos', 'movimientos', 'solicitudes', 'personalizado'),
+        allowNull: false,
+        comment: 'Tipo de reporte'
+    },
+    titulo: {
+        type: DataTypes.STRING(200),
+        allowNull: false,
+        comment: 'Título del reporte'
+    },
+    descripcion: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Descripción del reporte'
+    },
+    parametros: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        comment: 'Parámetros del reporte en formato JSON'
+    },
+    fecha_generacion: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+        comment: 'Fecha de generación del reporte'
+    },
+    usuario_generador_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'FK: ID del usuario que generó el reporte'
+    },
+    archivo_path: {
+        type: DataTypes.STRING(500),
+        allowNull: true,
+        comment: 'Ruta del archivo generado'
+    }
+}, {
+    tableName: 'reportes',
+    timestamps: true,
+    createdAt: 'fecha_generacion',
+    updatedAt: false
+});
 
-    // Las asociaciones se definirán en models/index.js para centralizarlas
-    return Reporte;
-};
+module.exports = Reporte; 

@@ -1,35 +1,36 @@
 /**
- * @file backend/models/EstadoEquipo.js
- * @description Define el modelo de la tabla 'estados_equipo' en la base de datos.
- * Representa los diferentes estados en los que puede encontrarse un equipo.
+ * @file Modelo EstadoEquipo
+ * @description Modelo Sequelize para la tabla estado_equipo
  */
 
 const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
-module.exports = (sequelize) => {
-    const EstadoEquipo = sequelize.define('EstadoEquipo', {
-        id_estado_equipo: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true,
-            comment: 'Identificador único del estado del equipo'
-        },
-        nombre_estado: {
-            type: DataTypes.STRING(100),
-            allowNull: false,
-            unique: true, // El nombre del estado debe ser único
-            comment: 'Nombre del estado del equipo (ej. Operativo, En Mantenimiento, Desecho)'
-        },
-        descripcion: {
-            type: DataTypes.TEXT,
-            allowNull: true,
-            comment: 'Descripción detallada del estado'
-        }
-    }, {
-        tableName: 'estados_equipo',
-        timestamps: false // No usa createdAt/updatedAt automáticamente
-    });
+const EstadoEquipo = sequelize.define('EstadoEquipo', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        comment: 'Identificador único del estado'
+    },
+    estado: {
+        type: DataTypes.STRING(50),
+        allowNull: false,
+        comment: 'Nombre del estado del equipo'
+    },
+    descripcion: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Descripción del estado'
+    },
+    color: {
+        type: DataTypes.STRING(20),
+        defaultValue: '#6B7280',
+        comment: 'Color para representación visual del estado'
+    }
+}, {
+    tableName: 'estado_equipo',
+    timestamps: false
+});
 
-    // Las asociaciones se definirán en models/index.js para centralizarlas
-    return EstadoEquipo;
-};
+module.exports = EstadoEquipo; 

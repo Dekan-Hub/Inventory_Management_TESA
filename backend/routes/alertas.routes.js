@@ -1,67 +1,53 @@
-/**
- * @file Rutas para la gestión de alertas y notificaciones.
- * @description Define las rutas para crear, consultar y marcar alertas como leídas.
- * Requiere autenticación y autorización.
- */
-
 const express = require('express');
-const alertaController = require('../controllers/alertas.controller');
-const { verifyToken, checkRole } = require('../middleware/auth');
-
 const router = express.Router();
+const alertasController = require('../controllers/alertas.controller');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 /**
- * @route POST /api/alertas
- * @description Crea una nueva alerta. Solo accesible por administradores y técnicos.
- * @access Private (Admin, Tecnico)
+ * Rutas para gestión de alertas
+ * Base: /api/alertas
  */
-router.post('/', verifyToken, checkRole(['administrador', 'tecnico']), alertaController.crearAlerta);
 
-/**
- * @route GET /api/alertas
- * @description Obtiene todas las alertas. Accesible por administradores y técnicos.
- * Un usuario normal solo debería ver sus propias alertas.
- * @access Private (Admin, Tecnico)
- */
-router.get('/', verifyToken, checkRole(['administrador', 'tecnico']), alertaController.obtenerAlertas);
+// Obtener todas las alertas (con filtros y paginación)
+router.get('/', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico', 'usuario']), 
+  alertasController.getAll
+);
 
-/**
- * @route GET /api/alertas/me
- * @description Obtiene las alertas dirigidas al usuario autenticado.
- * @access Private (All authenticated users)
- */
-router.get('/me', verifyToken, async (req, res, next) => {
-  try {
-    // Al re-usar obtenerAlertas, le pasamos el ID del usuario autenticado como filtro.
-    // El controlador ya sabe cómo manejar req.query.usuarioDestinoId
-    req.query.usuarioDestinoId = req.user.id_usuario;
-    await alertaController.obtenerAlertas(req, res, next);
-  } catch (error) {
-    next(error);
-  }
-});
+// Obtener alerta por ID
+router.get('/:id', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico', 'usuario']), 
+  alertasController.getById
+);
 
-/**
- * @route GET /api/alertas/:id
- * @description Obtiene una alerta específica por su ID. Accesible por administradores, técnicos
- * y el usuario destino de la alerta.
- * @access Private (Admin, Tecnico, Target User)
- */
-router.get('/:id', verifyToken, alertaController.obtenerAlertaPorId); // El controlador ya maneja la autorización interna
+// Crear nueva alerta
+router.post('/', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico', 'usuario']), 
+  alertasController.create
+);
 
-/**
- * @route PUT /api/alertas/:id/read
- * @description Marca una alerta como leída. Accesible por administradores, técnicos
- * y el usuario destino de la alerta.
- * @access Private (Admin, Tecnico, Target User)
- */
-router.put('/:id/read', verifyToken, alertaController.marcarAlertaComoLeida); // El controlador ya maneja la autorización interna
+// Actualizar alerta
+router.put('/:id', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico', 'usuario']), 
+  alertasController.update
+);
 
-/**
- * @route DELETE /api/alertas/:id
- * @description Elimina una alerta por su ID. Solo accesible por administradores.
- * @access Private (Admin only)
- */
-router.delete('/:id', verifyToken, checkRole(['administrador']), alertaController.eliminarAlerta);
+// Eliminar alerta
+router.delete('/:id', 
+  authenticateToken, 
+  authorizeRoles(['admin']), 
+  alertasController.delete
+);
 
-module.exports = router;
+// Obtener alertas por equipo
+router.get('/equipo/:equipo_id', 
+  authenticateToken, 
+  authorizeRoles(['admin', 'tecnico', 'usuario']), 
+  alertasController.getByEquipo
+);
+
+module.exports = router; 

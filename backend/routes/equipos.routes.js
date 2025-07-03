@@ -1,50 +1,57 @@
 /**
- * @file Rutas para la gestión de equipos.
- * @description Define las rutas para las operaciones CRUD de la entidad Equipo.
- * Requiere autenticación y autorización para la mayoría de las operaciones.
+ * @file Rutas de Equipos
+ * @description Define las rutas CRUD para equipos con permisos por roles
  */
 
 const express = require('express');
-const equipoController = require('../controllers/equipos.controller');
-const { verifyToken, checkRole } = require('../middleware/auth');
-const { createEquipoValidationRules, updateEquipoValidationRules } = require('../middleware/validators/equipos.validator');
-const handleValidationErrors = require('../middleware/validators/handleValidation');
-
 const router = express.Router();
+const equiposController = require('../controllers/equipos.controller');
+const { verifyToken, checkRole } = require('../middleware/auth');
 
-/**
- * @route POST /api/equipos
- * @description Crea un nuevo equipo. Solo accesible por administradores y técnicos.
- * @access Private (Admin, Tecnico)
- */
-router.post('/', verifyToken, checkRole(['administrador', 'tecnico']), createEquipoValidationRules(), handleValidationErrors, equipoController.crearEquipo);
+// =====================================================
+// RUTAS PROTEGIDAS - Requieren autenticación
+// =====================================================
 
 /**
  * @route GET /api/equipos
- * @description Obtiene todos los equipos. Accesible por todos los usuarios autenticados.
- * @access Private (All authenticated users)
+ * @description Obtener todos los equipos con filtros y paginación
+ * @access Private - Todos los roles
  */
-router.get('/', verifyToken, equipoController.obtenerEquipos);
+router.get('/', verifyToken, equiposController.obtenerEquipos);
+
+/**
+ * @route GET /api/equipos/estadisticas
+ * @description Obtener estadísticas de equipos
+ * @access Private - Administradores y Técnicos
+ */
+router.get('/estadisticas', verifyToken, checkRole(['administrador', 'tecnico']), equiposController.obtenerEstadisticasEquipos);
 
 /**
  * @route GET /api/equipos/:id
- * @description Obtiene un equipo por su ID. Accesible por todos los usuarios autenticados.
- * @access Private (All authenticated users)
+ * @description Obtener un equipo específico por ID
+ * @access Private - Todos los roles
  */
-router.get('/:id', verifyToken, equipoController.obtenerEquipoPorId);
+router.get('/:id', verifyToken, equiposController.obtenerEquipoPorId);
+
+/**
+ * @route POST /api/equipos
+ * @description Crear un nuevo equipo
+ * @access Private - Administradores y Técnicos
+ */
+router.post('/', verifyToken, checkRole(['administrador', 'tecnico']), equiposController.crearEquipo);
 
 /**
  * @route PUT /api/equipos/:id
- * @description Actualiza un equipo por su ID. Solo accesible por administradores y técnicos.
- * @access Private (Admin, Tecnico)
+ * @description Actualizar un equipo existente
+ * @access Private - Administradores y Técnicos
  */
-router.put('/:id', verifyToken, checkRole(['administrador', 'tecnico']), updateEquipoValidationRules(), handleValidationErrors, equipoController.actualizarEquipo);
+router.put('/:id', verifyToken, checkRole(['administrador', 'tecnico']), equiposController.actualizarEquipo);
 
 /**
  * @route DELETE /api/equipos/:id
- * @description Elimina un equipo por su ID. Solo accesible por administradores.
- * @access Private (Admin only)
+ * @description Eliminar un equipo
+ * @access Private - Solo Administradores
  */
-router.delete('/:id', verifyToken, checkRole(['administrador']), equipoController.eliminarEquipo);
+router.delete('/:id', verifyToken, checkRole(['administrador']), equiposController.eliminarEquipo);
 
-module.exports = router;
+module.exports = router; 
