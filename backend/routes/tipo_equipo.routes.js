@@ -1,5 +1,5 @@
 /**
- * @file Rutas de Tipos de Equipo
+ * @file Rutas de Tipo de Equipo
  * @description Define las rutas CRUD para tipos de equipo con permisos por roles
  */
 
@@ -8,43 +8,19 @@ const router = express.Router();
 const tipoEquipoController = require('../controllers/tipo_equipo.controller');
 const { verifyToken, checkRole } = require('../middleware/auth');
 
-// =====================================================
-// RUTAS PROTEGIDAS - Requieren autenticación
-// =====================================================
+// Obtener todos los tipos de equipo
+router.get('/', verifyToken, checkRole(['administrador', 'tecnico', 'usuario']), tipoEquipoController.obtenerTiposEquipo);
 
-/**
- * @route GET /api/tipo-equipo
- * @description Obtener todos los tipos de equipo activos
- * @access Private - Todos los roles
- */
-router.get('/', verifyToken, tipoEquipoController.obtenerTiposEquipo);
+// Obtener tipo de equipo por ID
+router.get('/:id', verifyToken, checkRole(['administrador', 'tecnico', 'usuario']), tipoEquipoController.obtenerTipoEquipoPorId);
 
-/**
- * @route GET /api/tipo-equipo/:id
- * @description Obtener un tipo de equipo específico por ID
- * @access Private - Todos los roles
- */
-router.get('/:id', verifyToken, tipoEquipoController.obtenerTipoEquipoPorId);
-
-/**
- * @route POST /api/tipo-equipo
- * @description Crear un nuevo tipo de equipo
- * @access Private - Solo Administradores
- */
+// Crear nuevo tipo de equipo
 router.post('/', verifyToken, checkRole(['administrador']), tipoEquipoController.crearTipoEquipo);
 
-/**
- * @route PUT /api/tipo-equipo/:id
- * @description Actualizar un tipo de equipo existente
- * @access Private - Solo Administradores
- */
+// Actualizar tipo de equipo
 router.put('/:id', verifyToken, checkRole(['administrador']), tipoEquipoController.actualizarTipoEquipo);
 
-/**
- * @route DELETE /api/tipo-equipo/:id
- * @description Eliminar un tipo de equipo
- * @access Private - Solo Administradores
- */
+// Eliminar tipo de equipo
 router.delete('/:id', verifyToken, checkRole(['administrador']), tipoEquipoController.eliminarTipoEquipo);
 
 module.exports = router; 

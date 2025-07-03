@@ -6,7 +6,12 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "seed": "node scripts/seed.js",
+    "seed": "npx sequelize-cli db:seed:all",
+    "seed:undo": "npx sequelize-cli db:seed:undo:all",
+    "migrate": "npx sequelize-cli db:migrate",
+    "migrate:undo": "npx sequelize-cli db:migrate:undo:all",
+    "migrate:undo:last": "npx sequelize-cli db:migrate:undo",
+    "db:reset": "npx sequelize-cli db:drop && npx sequelize-cli db:create && npx sequelize-cli db:migrate && npx sequelize-cli db:seed:all",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -43,6 +48,7 @@
     "@types/jest": "^30.0.0",
     "jest": "^30.0.4",
     "nodemon": "^3.0.2",
+    "sequelize-cli": "^6.6.3",
     "supertest": "^7.1.1"
   },
   "engines": {

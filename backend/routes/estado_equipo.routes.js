@@ -8,43 +8,19 @@ const router = express.Router();
 const estadoEquipoController = require('../controllers/estado_equipo.controller');
 const { verifyToken, checkRole } = require('../middleware/auth');
 
-// =====================================================
-// RUTAS PROTEGIDAS - Requieren autenticación
-// =====================================================
+// Obtener todos los estados de equipo
+router.get('/', verifyToken, checkRole(['administrador', 'tecnico', 'usuario']), estadoEquipoController.obtenerEstadosEquipo);
 
-/**
- * @route GET /api/estado-equipo
- * @description Obtener todos los estados de equipo
- * @access Private - Todos los roles
- */
-router.get('/', verifyToken, estadoEquipoController.obtenerEstadosEquipo);
+// Obtener estado de equipo por ID
+router.get('/:id', verifyToken, checkRole(['administrador', 'tecnico', 'usuario']), estadoEquipoController.obtenerEstadoEquipoPorId);
 
-/**
- * @route GET /api/estado-equipo/:id
- * @description Obtener un estado de equipo específico por ID
- * @access Private - Todos los roles
- */
-router.get('/:id', verifyToken, estadoEquipoController.obtenerEstadoEquipoPorId);
+// Crear nuevo estado de equipo
+router.post('/', verifyToken, checkRole(['administrador','tecnico']), estadoEquipoController.crearEstadoEquipo);
 
-/**
- * @route POST /api/estado-equipo
- * @description Crear un nuevo estado de equipo
- * @access Private - Solo Administradores
- */
-router.post('/', verifyToken, checkRole(['administrador']), estadoEquipoController.crearEstadoEquipo);
+// Actualizar estado de equipo
+router.put('/:id', verifyToken, checkRole(['administrador','tecnico']), estadoEquipoController.actualizarEstadoEquipo);
 
-/**
- * @route PUT /api/estado-equipo/:id
- * @description Actualizar un estado de equipo existente
- * @access Private - Solo Administradores
- */
-router.put('/:id', verifyToken, checkRole(['administrador']), estadoEquipoController.actualizarEstadoEquipo);
-
-/**
- * @route DELETE /api/estado-equipo/:id
- * @description Eliminar un estado de equipo
- * @access Private - Solo Administradores
- */
-router.delete('/:id', verifyToken, checkRole(['administrador']), estadoEquipoController.eliminarEstadoEquipo);
+// Eliminar estado de equipo
+router.delete('/:id', verifyToken, checkRole(['administrador','tecnico']), estadoEquipoController.eliminarEstadoEquipo);
 
 module.exports = router; 

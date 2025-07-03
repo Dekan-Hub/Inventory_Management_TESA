@@ -121,10 +121,8 @@ const startServer = async () => {
         // Probar conexión a la base de datos
         await testConnection();
 
-        // Poblar datos iniciales si es necesario
-        if (process.env.NODE_ENV === 'development') {
-            await seedData();
-        }
+        // Los datos iniciales se manejan con npm run seed
+        // No se ejecutan automáticamente para evitar sobrescribir datos existentes
 
         // Iniciar servidor
         app.listen(PORT, () => {

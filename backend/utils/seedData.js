@@ -24,7 +24,7 @@ const seedData = async () => {
             const usuarios = [
                 {
                     nombre: 'Administrador del Sistema',
-                    usuario: 'admin',
+                    usuario: 'Admin',
                     correo: 'admin@instituto.edu',
                     contraseña: 'Admin123',
                     rol: 'administrador'
@@ -214,7 +214,6 @@ const seedData = async () => {
                     marca: 'Dell',
                     observaciones: 'Equipo principal de administración',
                     fecha_adquisicion: '2024-01-15',
-                    costo_adquisicion: 2500.00,
                     tipo_equipo_id: tipoPC.id,
                     estado_id: estadoActivo.id,
                     ubicacion_id: ubicacionAdmin.id,
@@ -227,7 +226,6 @@ const seedData = async () => {
                     marca: 'Lenovo',
                     observaciones: 'Laptop para uso docente',
                     fecha_adquisicion: '2024-02-01',
-                    costo_adquisicion: 1800.00,
                     tipo_equipo_id: tipoLaptop.id,
                     estado_id: estadoActivo.id,
                     ubicacion_id: ubicacionAula101.id,
@@ -240,7 +238,6 @@ const seedData = async () => {
                     marca: 'Epson',
                     observaciones: 'Proyector para presentaciones',
                     fecha_adquisicion: '2024-01-20',
-                    costo_adquisicion: 1200.00,
                     tipo_equipo_id: tipoProyector.id,
                     estado_id: estadoActivo.id,
                     ubicacion_id: ubicacionAula101.id
@@ -252,7 +249,6 @@ const seedData = async () => {
                     marca: 'HP',
                     observaciones: 'Impresora láser para oficina',
                     fecha_adquisicion: '2024-01-10',
-                    costo_adquisicion: 800.00,
                     tipo_equipo_id: tipoImpresora.id,
                     estado_id: estadoActivo.id,
                     ubicacion_id: ubicacionAdmin.id
@@ -269,7 +265,7 @@ const seedData = async () => {
 
         console.log('🎉 Población de datos completada exitosamente!');
         console.log('\n📋 Credenciales de acceso:');
-        console.log('👤 Administrador: admin / Admin123');
+        console.log('👤 Administrador: Admin / Admin123');
         console.log('🔧 Técnico: tecnico / Tecnico123');
         console.log('👥 Usuario: usuario / Usuario123');
 

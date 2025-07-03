@@ -1,4 +1,4 @@
-# 🏫 Sistema de Gestión de Inventarios Tecnológicos - Backend
+# 🏫 Sistema de Gestión de Inventarios Tecnológicos para el Instituto San Antonio - Backend
 
 Backend del Sistema de Gestión de Inventarios Tecnológicos para el Instituto San Antonio, desarrollado con Node.js, Express, MySQL y Sequelize.
 
@@ -197,24 +197,6 @@ npm run lint:fix       # Corregir código automáticamente
 - `PUT /api/mantenimientos/:id` - Actualizar mantenimiento
 - `DELETE /api/mantenimientos/:id` - Eliminar mantenimiento
 
-### Movimientos
-- `GET /api/movimientos` - Listar movimientos
-- `POST /api/movimientos` - Crear movimiento
-- `PUT /api/movimientos/:id` - Actualizar movimiento
-- `DELETE /api/movimientos/:id` - Eliminar movimiento
-
-### Solicitudes
-- `GET /api/solicitudes` - Listar solicitudes
-- `POST /api/solicitudes` - Crear solicitud
-- `PUT /api/solicitudes/:id` - Actualizar solicitud
-- `DELETE /api/solicitudes/:id` - Eliminar solicitud
-
-### Alertas
-- `GET /api/alertas` - Listar alertas
-- `POST /api/alertas` - Crear alerta
-- `PUT /api/alertas/:id` - Actualizar alerta
-- `DELETE /api/alertas/:id` - Eliminar alerta
-
 ### Reportes
 - `GET /api/reportes` - Listar reportes
 - `POST /api/reportes` - Crear reporte
@@ -287,7 +269,7 @@ DB_USER=root
 DB_PASSWORD=password
 
 # JWT
-JWT_SECRET=tu-clave-secreta-super-segura-aqui
+JWT_SECRET=your-secret-key
 JWT_EXPIRES_IN=24h
 
 # Servidor
@@ -300,12 +282,6 @@ CORS_ORIGIN=http://localhost:5173
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
-
-# Configuración de Logs
-LOG_LEVEL=info
-
-# Configuración de Reportes
-REPORTS_PATH=./reports
 ```
 
 ## 🤝 Contribución
@@ -318,7 +294,7 @@ REPORTS_PATH=./reports
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia ISC.
+Este proyecto está bajo la Licencia TESA.
 
 ## 👥 Autores
 

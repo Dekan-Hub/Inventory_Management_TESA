@@ -1,60 +1,32 @@
+/**
+ * @file Rutas de Mantenimientos
+ * @description Define las rutas CRUD para mantenimientos con permisos por roles
+ */
+
 const express = require('express');
 const router = express.Router();
 const mantenimientosController = require('../controllers/mantenimientos.controller');
-const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const { verifyToken, checkRole } = require('../middleware/auth');
 
-/**
- * Rutas para gestión de mantenimientos
- * Base: /api/mantenimientos
- */
-
-// Obtener todos los mantenimientos (con filtros y paginación)
-router.get('/', 
-  authenticateToken, 
-  authorizeRoles(['admin', 'tecnico', 'usuario']), 
-  mantenimientosController.getAll
-);
+// Obtener todos los mantenimientos
+router.get('/', verifyToken, checkRole(['administrador', 'tecnico', 'usuario']), mantenimientosController.getAll);
 
 // Obtener mantenimiento por ID
-router.get('/:id', 
-  authenticateToken, 
-  authorizeRoles(['admin', 'tecnico', 'usuario']), 
-  mantenimientosController.getById
-);
+router.get('/:id', verifyToken, checkRole(['administrador', 'tecnico', 'usuario']), mantenimientosController.getById);
 
 // Crear nuevo mantenimiento
-router.post('/', 
-  authenticateToken, 
-  authorizeRoles(['admin', 'tecnico']), 
-  mantenimientosController.create
-);
+router.post('/', verifyToken, checkRole(['administrador', 'tecnico']), mantenimientosController.create);
 
 // Actualizar mantenimiento
-router.put('/:id', 
-  authenticateToken, 
-  authorizeRoles(['admin', 'tecnico']), 
-  mantenimientosController.update
-);
+router.put('/:id', verifyToken, checkRole(['administrador', 'tecnico']), mantenimientosController.update);
 
 // Eliminar mantenimiento
-router.delete('/:id', 
-  authenticateToken, 
-  authorizeRoles(['admin']), 
-  mantenimientosController.delete
-);
+router.delete('/:id', verifyToken, checkRole(['administrador']), mantenimientosController.delete);
 
 // Obtener estadísticas de mantenimientos
-router.get('/stats/estadisticas', 
-  authenticateToken, 
-  authorizeRoles(['admin', 'tecnico']), 
-  mantenimientosController.getStats
-);
+router.get('/stats/estadisticas', verifyToken, checkRole(['administrador', 'tecnico']), mantenimientosController.getStats);
 
 // Obtener mantenimientos por equipo
-router.get('/equipo/:equipo_id', 
-  authenticateToken, 
-  authorizeRoles(['admin', 'tecnico', 'usuario']), 
-  mantenimientosController.getByEquipo
-);
+router.get('/equipo/:equipo_id', verifyToken, checkRole(['administrador', 'tecnico', 'usuario']), mantenimientosController.getByEquipo);
 
 module.exports = router; 

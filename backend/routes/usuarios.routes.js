@@ -1,60 +1,32 @@
+/**
+ * @file Rutas de Usuarios
+ * @description Define las rutas CRUD para usuarios con permisos por roles
+ */
+
 const express = require('express');
 const router = express.Router();
 const usuariosController = require('../controllers/usuarios.controller');
-const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const { verifyToken, checkRole } = require('../middleware/auth');
 
-/**
- * Rutas para gestión de usuarios
- * Base: /api/usuarios
- */
-
-// Obtener todos los usuarios (con filtros y paginación)
-router.get('/', 
-  authenticateToken, 
-  authorizeRoles(['admin']), 
-  usuariosController.getAll
-);
+// Obtener todos los usuarios
+router.get('/', verifyToken, checkRole(['administrador']), usuariosController.getAll);
 
 // Obtener usuario por ID
-router.get('/:id', 
-  authenticateToken, 
-  authorizeRoles(['admin']), 
-  usuariosController.getById
-);
+router.get('/:id', verifyToken, checkRole(['administrador']), usuariosController.getById);
 
 // Crear nuevo usuario
-router.post('/', 
-  authenticateToken, 
-  authorizeRoles(['admin']), 
-  usuariosController.create
-);
+router.post('/', verifyToken, checkRole(['administrador']), usuariosController.create);
 
 // Actualizar usuario
-router.put('/:id', 
-  authenticateToken, 
-  authorizeRoles(['admin']), 
-  usuariosController.update
-);
+router.put('/:id', verifyToken, checkRole(['administrador']), usuariosController.update);
 
 // Eliminar usuario
-router.delete('/:id', 
-  authenticateToken, 
-  authorizeRoles(['admin']), 
-  usuariosController.delete
-);
+router.delete('/:id', verifyToken, checkRole(['administrador']), usuariosController.delete);
 
-// Obtener perfil del usuario actual
-router.get('/profile/me', 
-  authenticateToken, 
-  authorizeRoles(['admin', 'tecnico', 'usuario']), 
-  usuariosController.getProfile
-);
+// Obtener perfil del usuario autenticado
+router.get('/me/profile', verifyToken, checkRole(['administrador', 'tecnico', 'usuario']), usuariosController.getProfile);
 
-// Actualizar perfil del usuario actual
-router.put('/profile/me', 
-  authenticateToken, 
-  authorizeRoles(['admin', 'tecnico', 'usuario']), 
-  usuariosController.updateProfile
-);
+// Actualizar perfil del usuario autenticado
+router.put('/me/profile', verifyToken, checkRole(['administrador', 'tecnico', 'usuario']), usuariosController.updateProfile);
 
 module.exports = router; 

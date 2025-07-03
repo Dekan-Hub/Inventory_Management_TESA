@@ -17,7 +17,7 @@ POST /api/auth/login
 **Body:**
 ```json
 {
-  "usuario": "admin",
+  "usuario": "Admin",
   "contraseña": "Admin123"
 }
 ```
@@ -31,7 +31,7 @@ POST /api/auth/login
     "usuario": {
       "id": 1,
       "nombre": "Administrador del Sistema",
-      "usuario": "admin",
+      "usuario": "Admin",
       "correo": "admin@instituto.edu",
       "rol": "administrador"
     }

@@ -6,9 +6,61 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-// Configuración de la base de datos
+// Configuración para Sequelize CLI
+const config = {
+    development: {
+        username: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        database: process.env.DB_NAME || 'tesa_inventario',
+        host: process.env.DB_HOST || 'localhost',
+        port: process.env.DB_PORT || 3306,
+        dialect: 'mysql',
+        logging: console.log,
+        define: {
+            timestamps: true,
+            underscored: true,
+            freezeTableName: true
+        }
+    },
+    test: {
+        username: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        database: process.env.DB_NAME_TEST || 'tesa_inventario_test',
+        host: process.env.DB_HOST || 'localhost',
+        port: process.env.DB_PORT || 3306,
+        dialect: 'mysql',
+        logging: false,
+        define: {
+            timestamps: true,
+            underscored: true,
+            freezeTableName: true
+        }
+    },
+    production: {
+        username: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT || 3306,
+        dialect: 'mysql',
+        logging: false,
+        define: {
+            timestamps: true,
+            underscored: true,
+            freezeTableName: true
+        },
+        pool: {
+            max: 5,
+            min: 0,
+            acquire: 30000,
+            idle: 10000
+        }
+    }
+};
+
+// Configuración de la base de datos para la aplicación
 const sequelize = new Sequelize(
-    process.env.DB_NAME || 'inventory_management',
+    process.env.DB_NAME || 'tesa_inventario',
     process.env.DB_USER || 'root',
     process.env.DB_PASSWORD || '',
     {
@@ -52,8 +104,10 @@ const syncDatabase = async (force = false) => {
     }
 };
 
-module.exports = {
-    sequelize,
-    testConnection,
-    syncDatabase
-}; 
+// Exportar configuración para Sequelize CLI
+module.exports = config;
+
+// Exportar también las funciones para uso en la aplicación
+module.exports.sequelize = sequelize;
+module.exports.testConnection = testConnection;
+module.exports.syncDatabase = syncDatabase; 
