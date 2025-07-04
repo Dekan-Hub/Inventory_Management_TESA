@@ -44,11 +44,6 @@ const Equipo = sequelize.define('Equipo', {
         allowNull: true,
         comment: 'Fecha de adquisición del equipo'
     },
-    costo_adquisicion: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: true,
-        comment: 'Costo de adquisición del equipo'
-    },
     tipo_equipo_id: {
         type: DataTypes.INTEGER,
         allowNull: false,

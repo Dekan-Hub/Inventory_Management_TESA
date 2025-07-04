@@ -9,16 +9,10 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      tipo_movimiento: {
-        type: Sequelize.ENUM('asignacion', 'traslado', 'devolucion', 'prestamo'),
-        allowNull: false,
-        comment: 'Tipo de movimiento realizado'
-      },
       fecha_movimiento: {
-        type: Sequelize.DATE,
+        type: Sequelize.DATEONLY,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
-        comment: 'Fecha y hora del movimiento'
+        comment: 'Fecha del movimiento'
       },
       motivo: {
         type: Sequelize.TEXT,
@@ -29,6 +23,12 @@ module.exports = {
         type: Sequelize.TEXT,
         allowNull: true,
         comment: 'Observaciones adicionales'
+      },
+      estado: {
+        type: Sequelize.ENUM('pendiente', 'aprobado', 'rechazado', 'completado'),
+        allowNull: false,
+        defaultValue: 'pendiente',
+        comment: 'Estado del movimiento'
       },
       equipo_id: {
         type: Sequelize.INTEGER,
@@ -43,13 +43,13 @@ module.exports = {
       },
       ubicacion_origen_id: {
         type: Sequelize.INTEGER,
-        allowNull: true,
+        allowNull: false,
         references: {
           model: 'ubicaciones',
           key: 'id'
         },
         onUpdate: 'CASCADE',
-        onDelete: 'SET NULL',
+        onDelete: 'RESTRICT',
         comment: 'ID de la ubicación de origen'
       },
       ubicacion_destino_id: {
@@ -63,29 +63,7 @@ module.exports = {
         onDelete: 'RESTRICT',
         comment: 'ID de la ubicación de destino'
       },
-      usuario_origen_id: {
-        type: Sequelize.INTEGER,
-        allowNull: true,
-        references: {
-          model: 'usuarios',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL',
-        comment: 'ID del usuario de origen'
-      },
-      usuario_destino_id: {
-        type: Sequelize.INTEGER,
-        allowNull: true,
-        references: {
-          model: 'usuarios',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL',
-        comment: 'ID del usuario de destino'
-      },
-      autorizado_por_id: {
+      responsable_id: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
@@ -94,7 +72,7 @@ module.exports = {
         },
         onUpdate: 'CASCADE',
         onDelete: 'RESTRICT',
-        comment: 'ID del usuario que autorizó el movimiento'
+        comment: 'ID del responsable del movimiento'
       },
       fecha_registro: {
         type: Sequelize.DATE,
@@ -114,11 +92,9 @@ module.exports = {
 
     // Índices para mejorar rendimiento
     await queryInterface.addIndex('movimientos', ['equipo_id']);
-    await queryInterface.addIndex('movimientos', ['tipo_movimiento']);
     await queryInterface.addIndex('movimientos', ['fecha_movimiento']);
     await queryInterface.addIndex('movimientos', ['ubicacion_destino_id']);
-    await queryInterface.addIndex('movimientos', ['usuario_destino_id']);
-    await queryInterface.addIndex('movimientos', ['autorizado_por_id']);
+    await queryInterface.addIndex('movimientos', ['responsable_id']);
   },
 
   down: async (queryInterface, Sequelize) => {

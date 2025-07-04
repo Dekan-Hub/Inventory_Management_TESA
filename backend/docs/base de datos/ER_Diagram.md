@@ -109,7 +109,25 @@ Este documento describe el modelo de datos del sistema de gestión de inventario
 - `equipo_id` → EQUIPOS(id)
 - `administrador_id` → USUARIOS(id)
 
-### 9. ALERTAS
+### 9. ADJUNTOS_SOLICITUDES
+**Descripción**: Archivos adjuntos de las solicitudes
+**Atributos Clave**:
+- `id` (PK): Identificador único del adjunto
+- `solicitud_id` (FK): ID de la solicitud
+- `nombre_archivo`: Nombre original del archivo
+- `nombre_guardado`: Nombre del archivo guardado en el servidor
+- `ruta_archivo`: Ruta completa del archivo
+- `tipo_archivo`: Tipo MIME del archivo
+- `tamano_bytes`: Tamaño del archivo en bytes
+- `descripcion`: Descripción opcional del adjunto
+- `fecha_subida`: Fecha de subida del archivo
+- `usuario_id` (FK): ID del usuario que subió el archivo
+
+**Claves Foráneas**:
+- `solicitud_id` → SOLICITUDES(id) ON DELETE CASCADE
+- `usuario_id` → USUARIOS(id) ON DELETE CASCADE
+
+### 10. ALERTAS
 **Descripción**: Sistema de alertas y notificaciones
 **Atributos Clave**:
 - `id` (PK): Identificador único de la alerta
@@ -122,7 +140,7 @@ Este documento describe el modelo de datos del sistema de gestión de inventario
 **Claves Foráneas**:
 - `usuario_id` → USUARIOS(id)
 
-### 10. REPORTES
+### 11. REPORTES
 **Descripción**: Reportes generados del sistema
 **Atributos Clave**:
 - `id` (PK): Identificador único del reporte
@@ -154,6 +172,8 @@ Este documento describe el modelo de datos del sistema de gestión de inventario
 11. **EQUIPOS** → **MANTENIMIENTOS** (equipo_id)
 12. **EQUIPOS** → **MOVIMIENTOS** (equipo_id)
 13. **EQUIPOS** → **SOLICITUDES** (equipo_id)
+14. **SOLICITUDES** → **ADJUNTOS_SOLICITUDES** (solicitud_id)
+15. **USUARIOS** → **ADJUNTOS_SOLICITUDES** (usuario_id)
 
 ## Permisos por Roles
 
@@ -184,4 +204,6 @@ Este documento describe el modelo de datos del sistema de gestión de inventario
 - `idx_mantenimientos_tecnico`: Optimiza consultas de mantenimientos por técnico
 - `idx_movimientos_equipo`: Optimiza consultas de movimientos por equipo
 - `idx_solicitudes_usuario`: Optimiza consultas de solicitudes por usuario
+- `idx_adjuntos_solicitud`: Optimiza consultas de adjuntos por solicitud
+- `idx_adjuntos_usuario`: Optimiza consultas de adjuntos por usuario
 - `idx_alertas_usuario`: Optimiza consultas de alertas por usuario 

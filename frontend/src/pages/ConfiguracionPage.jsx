@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import UsuariosList from './Usuarios/UsuariosList';
+import { useAuth } from '../context/AuthContext';
 
 const tabs = [
   { label: 'General', key: 'general' },
@@ -6,10 +8,14 @@ const tabs = [
 ];
 
 export default function ConfiguracionPage() {
+  const { user } = useAuth();
   const [tab, setTab] = useState('general');
+  if (user?.rol !== 'administrador') {
+    return <div className="p-6">Acceso restringido. Solo el administrador puede ver esta sección.</div>;
+  }
 
   return (
-    <div>
+    <div className="p-6">
       <h1 className="text-2xl font-bold text-primary mb-4">Configuración</h1>
       <div className="bg-white rounded shadow p-6">
         <div className="flex gap-4 border-b mb-4">
@@ -36,7 +42,7 @@ export default function ConfiguracionPage() {
                 <input className="w-full border rounded px-3 py-2" defaultValue="Av. Principal #123, Ciudad" />
               </div>
               <div>
-                <label className="block text-dark mb-1">Email de contacto</label>
+                <label className="block text-dark mb-1">Correo de contacto</label>
                 <input className="w-full border rounded px-3 py-2" defaultValue="contacto@instituto.edu" />
               </div>
               <div>
@@ -50,7 +56,7 @@ export default function ConfiguracionPage() {
         {tab === 'usuarios' && (
           <div>
             <h2 className="font-bold mb-2">Gestión de Usuarios</h2>
-            <div className="bg-light p-4 rounded">Aquí irá la tabla de usuarios y el CRUD.</div>
+            <UsuariosList />
           </div>
         )}
       </div>

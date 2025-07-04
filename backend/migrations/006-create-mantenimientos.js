@@ -10,7 +10,7 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       tipo_mantenimiento: {
-        type: Sequelize.ENUM('preventivo', 'correctivo', 'emergencia'),
+        type: Sequelize.ENUM('preventivo', 'correctivo', 'calibracion'),
         allowNull: false,
         comment: 'Tipo de mantenimiento realizado'
       },
@@ -19,15 +19,10 @@ module.exports = {
         allowNull: false,
         comment: 'Descripción detallada del mantenimiento'
       },
-      fecha_inicio: {
-        type: Sequelize.DATE,
+      fecha_mantenimiento: {
+        type: Sequelize.DATEONLY,
         allowNull: false,
-        comment: 'Fecha de inicio del mantenimiento'
-      },
-      fecha_fin: {
-        type: Sequelize.DATE,
-        allowNull: true,
-        comment: 'Fecha de finalización del mantenimiento'
+        comment: 'Fecha del mantenimiento'
       },
       costo: {
         type: Sequelize.DECIMAL(10, 2),
@@ -98,7 +93,7 @@ module.exports = {
     await queryInterface.addIndex('mantenimientos', ['equipo_id']);
     await queryInterface.addIndex('mantenimientos', ['tecnico_id']);
     await queryInterface.addIndex('mantenimientos', ['estado']);
-    await queryInterface.addIndex('mantenimientos', ['fecha_inicio']);
+    await queryInterface.addIndex('mantenimientos', ['fecha_mantenimiento']);
     await queryInterface.addIndex('mantenimientos', ['tipo_mantenimiento']);
   },
 

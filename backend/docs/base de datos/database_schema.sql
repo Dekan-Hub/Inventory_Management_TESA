@@ -141,6 +141,28 @@ CREATE TABLE solicitudes (
 );
 
 -- =====================================================
+-- TABLA: adjuntos_solicitudes
+-- Descripción: Archivos adjuntos de las solicitudes
+-- =====================================================
+CREATE TABLE adjuntos_solicitudes (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    solicitud_id INT NOT NULL,
+    nombre_archivo VARCHAR(255) NOT NULL,
+    nombre_guardado VARCHAR(255) NOT NULL,
+    ruta_archivo VARCHAR(500) NOT NULL,
+    tipo_archivo VARCHAR(100),
+    tamano_bytes INT,
+    descripcion TEXT,
+    fecha_subida TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    usuario_id INT NOT NULL,
+    FOREIGN KEY (solicitud_id) REFERENCES solicitudes(id) ON DELETE CASCADE,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    INDEX idx_solicitud_id (solicitud_id),
+    INDEX idx_usuario_id (usuario_id),
+    INDEX idx_fecha_subida (fecha_subida)
+);
+
+-- =====================================================
 -- TABLA: alertas
 -- Descripción: Sistema de alertas y notificaciones
 -- =====================================================
@@ -181,6 +203,8 @@ CREATE INDEX idx_mantenimientos_equipo ON mantenimientos(equipo_id);
 CREATE INDEX idx_mantenimientos_tecnico ON mantenimientos(tecnico_id);
 CREATE INDEX idx_movimientos_equipo ON movimientos(equipo_id);
 CREATE INDEX idx_solicitudes_usuario ON solicitudes(usuario_id);
+CREATE INDEX idx_adjuntos_solicitud ON adjuntos_solicitudes(solicitud_id);
+CREATE INDEX idx_adjuntos_usuario ON adjuntos_solicitudes(usuario_id);
 CREATE INDEX idx_alertas_usuario ON alertas(usuario_id);
 
 -- =====================================================

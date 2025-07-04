@@ -43,6 +43,11 @@ const Movimiento = sequelize.define('Movimiento', {
         allowNull: false,
         comment: 'Motivo del movimiento'
     },
+    observaciones: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Observaciones adicionales del movimiento'
+    },
     estado: {
         type: DataTypes.ENUM('pendiente', 'aprobado', 'rechazado', 'completado'),
         defaultValue: 'pendiente',

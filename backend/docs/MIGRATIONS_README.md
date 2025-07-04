@@ -53,6 +53,12 @@ npm run db:reset
 | `003-create-estado-equipo.js` | Estados operativos de equipos |
 | `004-create-ubicaciones.js` | Ubicaciones físicas de equipos |
 | `005-create-equipos.js` | Tabla principal de equipos con FK |
+| `006-create-mantenimientos.js` | Registro de mantenimientos de equipos |
+| `007-create-movimientos.js` | Registro de movimientos de equipos |
+| `008-create-solicitudes.js` | Sistema de solicitudes de usuarios |
+| `009-create-alertas.js` | Sistema de alertas y notificaciones |
+| `010-create-reportes.js` | Sistema de reportes generados |
+| `011-create-adjuntos-solicitudes.js` | Archivos adjuntos de solicitudes |
 
 ## 🌱 Seeders Disponibles
 

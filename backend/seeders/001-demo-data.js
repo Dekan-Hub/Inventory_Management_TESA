@@ -116,11 +116,11 @@ module.exports = {
 
     // Equipos de ejemplo
     const equipos = [
-      { nombre: 'PC Administrativa 001', numero_serie: 'PC-ADM-001-2024', modelo: 'OptiPlex 7090', marca: 'Dell', observaciones: 'Computadora para oficina administrativa', fecha_adquisicion: '2024-01-15', costo_adquisicion: 2500.00, tipo_equipo_id: 1, estado_id: 1, ubicacion_id: 3, usuario_asignado_id: 1, fecha_registro: new Date(), createdAt: new Date(), updatedAt: new Date() },
-      { nombre: 'Laptop Técnico 001', numero_serie: 'LAP-TEC-001-2024', modelo: 'ThinkPad T14', marca: 'Lenovo', observaciones: 'Laptop para trabajo técnico móvil', fecha_adquisicion: '2024-02-20', costo_adquisicion: 3200.00, tipo_equipo_id: 2, estado_id: 1, ubicacion_id: 4, usuario_asignado_id: 2, fecha_registro: new Date(), createdAt: new Date(), updatedAt: new Date() },
-      { nombre: 'Proyector Aula 101', numero_serie: 'PROJ-A101-2024', modelo: 'PowerLite 1781W', marca: 'Epson', observaciones: 'Proyector para presentaciones en aula', fecha_adquisicion: '2024-03-10', costo_adquisicion: 1800.00, tipo_equipo_id: 3, estado_id: 1, ubicacion_id: 1, usuario_asignado_id: null, fecha_registro: new Date(), createdAt: new Date(), updatedAt: new Date() },
-      { nombre: 'Impresora Multifuncional', numero_serie: 'IMP-MF-001-2024', modelo: 'LaserJet Pro M404n', marca: 'HP', observaciones: 'Impresora láser multifuncional', fecha_adquisicion: '2024-01-05', costo_adquisicion: 450.00, tipo_equipo_id: 4, estado_id: 2, ubicacion_id: 3, usuario_asignado_id: null, fecha_registro: new Date(), createdAt: new Date(), updatedAt: new Date() },
-      { nombre: 'Tablet Educativa 001', numero_serie: 'TAB-EDU-001-2024', modelo: 'iPad Air', marca: 'Apple', observaciones: 'Tablet para uso educativo', fecha_adquisicion: '2024-04-15', costo_adquisicion: 800.00, tipo_equipo_id: 5, estado_id: 1, ubicacion_id: 5, usuario_asignado_id: 3, fecha_registro: new Date(), createdAt: new Date(), updatedAt: new Date() }
+      { nombre: 'PC Administrativa 001', numero_serie: 'PC-ADM-001-2024', modelo: 'OptiPlex 7090', marca: 'Dell', observaciones: 'Computadora para oficina administrativa', fecha_adquisicion: '2024-01-15', tipo_equipo_id: 1, estado_id: 1, ubicacion_id: 3, usuario_asignado_id: 1, fecha_registro: new Date(), createdAt: new Date(), updatedAt: new Date() },
+      { nombre: 'Laptop Técnico 001', numero_serie: 'LAP-TEC-001-2024', modelo: 'ThinkPad T14', marca: 'Lenovo', observaciones: 'Laptop para trabajo técnico móvil', fecha_adquisicion: '2024-02-20', tipo_equipo_id: 2, estado_id: 1, ubicacion_id: 4, usuario_asignado_id: 2, fecha_registro: new Date(), createdAt: new Date(), updatedAt: new Date() },
+      { nombre: 'Proyector Aula 101', numero_serie: 'PROJ-A101-2024', modelo: 'PowerLite 1781W', marca: 'Epson', observaciones: 'Proyector para presentaciones en aula', fecha_adquisicion: '2024-03-10', tipo_equipo_id: 3, estado_id: 1, ubicacion_id: 1, usuario_asignado_id: null, fecha_registro: new Date(), createdAt: new Date(), updatedAt: new Date() },
+      { nombre: 'Impresora Multifuncional', numero_serie: 'IMP-MF-001-2024', modelo: 'LaserJet Pro M404n', marca: 'HP', observaciones: 'Impresora láser multifuncional', fecha_adquisicion: '2024-01-05', tipo_equipo_id: 4, estado_id: 2, ubicacion_id: 3, usuario_asignado_id: null, fecha_registro: new Date(), createdAt: new Date(), updatedAt: new Date() },
+      { nombre: 'Tablet Educativa 001', numero_serie: 'TAB-EDU-001-2024', modelo: 'iPad Air', marca: 'Apple', observaciones: 'Tablet para uso educativo', fecha_adquisicion: '2024-04-15', tipo_equipo_id: 5, estado_id: 1, ubicacion_id: 5, usuario_asignado_id: 3, fecha_registro: new Date(), createdAt: new Date(), updatedAt: new Date() }
     ];
     for (const equipo of equipos) {
       const exists = await queryInterface.rawSelect('equipos', {
@@ -139,14 +139,12 @@ module.exports = {
       {
         tipo_mantenimiento: 'preventivo',
         descripcion: 'Limpieza y actualización de software en PC administrativa',
-        fecha_inicio: new Date('2024-06-15'),
-        fecha_fin: new Date('2024-06-16'),
+        fecha_mantenimiento: new Date('2024-06-15'),
         costo: 150.00,
         estado: 'completado',
         observaciones: 'Mantenimiento rutinario realizado exitosamente',
         equipo_id: 1,
         tecnico_id: 2,
-        solicitante_id: 1,
         fecha_registro: new Date(),
         createdAt: new Date(),
         updatedAt: new Date()
@@ -154,29 +152,25 @@ module.exports = {
       {
         tipo_mantenimiento: 'correctivo',
         descripcion: 'Reparación de impresora con problemas de alimentación de papel',
-        fecha_inicio: new Date('2024-06-20'),
-        fecha_fin: null,
+        fecha_mantenimiento: new Date('2024-06-20'),
         costo: 200.00,
         estado: 'en_proceso',
         observaciones: 'Esperando repuestos para completar la reparación',
         equipo_id: 4,
         tecnico_id: 2,
-        solicitante_id: 3,
         fecha_registro: new Date(),
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
-        tipo_mantenimiento: 'emergencia',
-        descripcion: 'Reparación urgente de proyector que no enciende',
-        fecha_inicio: new Date('2024-06-25'),
-        fecha_fin: new Date('2024-06-25'),
+        tipo_mantenimiento: 'calibracion',
+        descripcion: 'Calibración de proyector para mejor calidad de imagen',
+        fecha_mantenimiento: new Date('2024-06-25'),
         costo: 300.00,
         estado: 'completado',
-        observaciones: 'Cambio de lámpara del proyector',
+        observaciones: 'Calibración exitosa del proyector',
         equipo_id: 3,
         tecnico_id: 2,
-        solicitante_id: 1,
         fecha_registro: new Date(),
         createdAt: new Date(),
         updatedAt: new Date()
@@ -186,7 +180,7 @@ module.exports = {
       const exists = await queryInterface.rawSelect('mantenimientos', {
         where: { 
           equipo_id: mantenimiento.equipo_id,
-          fecha_inicio: mantenimiento.fecha_inicio,
+          fecha_mantenimiento: mantenimiento.fecha_mantenimiento,
           tipo_mantenimiento: mantenimiento.tipo_mantenimiento
         }
       }, ['id']);
@@ -201,46 +195,40 @@ module.exports = {
     // Movimientos de ejemplo
     const movimientos = [
       {
-        tipo_movimiento: 'asignacion',
         fecha_movimiento: new Date('2024-06-10'),
         motivo: 'Asignación de laptop para trabajo técnico',
         observaciones: 'Laptop asignada al técnico para mantenimientos móviles',
         equipo_id: 2,
         ubicacion_origen_id: 4,
         ubicacion_destino_id: 4,
-        usuario_origen_id: null,
-        usuario_destino_id: 2,
-        autorizado_por_id: 1,
+        responsable_id: 1,
+        estado: 'completado',
         fecha_registro: new Date(),
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
-        tipo_movimiento: 'traslado',
         fecha_movimiento: new Date('2024-06-12'),
         motivo: 'Traslado de proyector para presentación en auditorio',
         observaciones: 'Proyector movido temporalmente para evento especial',
         equipo_id: 3,
         ubicacion_origen_id: 1,
         ubicacion_destino_id: 6,
-        usuario_origen_id: null,
-        usuario_destino_id: null,
-        autorizado_por_id: 1,
+        responsable_id: 1,
+        estado: 'completado',
         fecha_registro: new Date(),
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
-        tipo_movimiento: 'devolucion',
         fecha_movimiento: new Date('2024-06-14'),
         motivo: 'Devolución de proyector a su ubicación original',
         observaciones: 'Proyector devuelto después del evento',
         equipo_id: 3,
         ubicacion_origen_id: 6,
         ubicacion_destino_id: 1,
-        usuario_origen_id: null,
-        usuario_destino_id: null,
-        autorizado_por_id: 1,
+        responsable_id: 1,
+        estado: 'completado',
         fecha_registro: new Date(),
         createdAt: new Date(),
         updatedAt: new Date()
@@ -251,7 +239,7 @@ module.exports = {
         where: { 
           equipo_id: movimiento.equipo_id,
           fecha_movimiento: movimiento.fecha_movimiento,
-          tipo_movimiento: movimiento.tipo_movimiento
+          motivo: movimiento.motivo
         }
       }, ['id']);
       if (!exists) {
@@ -268,32 +256,28 @@ module.exports = {
         tipo_solicitud: 'mantenimiento',
         titulo: 'Solicitud de mantenimiento preventivo',
         descripcion: 'Necesito que se realice mantenimiento preventivo en la PC administrativa',
-        prioridad: 'media',
         estado: 'aprobada',
         fecha_solicitud: new Date('2024-06-08'),
-        fecha_resolucion: new Date('2024-06-15'),
-        observaciones: 'Solicitud aprobada y programada',
-        solicitante_id: 1,
-        asignado_a_id: 2,
+        fecha_respuesta: new Date('2024-06-15'),
+        respuesta: 'Solicitud aprobada y programada',
+        usuario_id: 1,
+        administrador_id: 1,
         equipo_id: 1,
-        ubicacion_id: 3,
         fecha_registro: new Date(),
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
-        tipo_solicitud: 'equipo',
+        tipo_solicitud: 'nuevo_equipo',
         titulo: 'Solicitud de nueva impresora',
         descripcion: 'Se requiere una nueva impresora para el laboratorio',
-        prioridad: 'alta',
-        estado: 'en_revision',
+        estado: 'en_proceso',
         fecha_solicitud: new Date('2024-06-18'),
-        fecha_resolucion: null,
-        observaciones: 'En revisión de presupuesto',
-        solicitante_id: 3,
-        asignado_a_id: 1,
+        fecha_respuesta: null,
+        respuesta: 'En revisión de presupuesto',
+        usuario_id: 3,
+        administrador_id: 1,
         equipo_id: null,
-        ubicacion_id: 5,
         fecha_registro: new Date(),
         createdAt: new Date(),
         updatedAt: new Date()
@@ -302,15 +286,13 @@ module.exports = {
         tipo_solicitud: 'movimiento',
         titulo: 'Solicitud de traslado de equipo',
         descripcion: 'Necesito trasladar la tablet al auditorio para presentación',
-        prioridad: 'baja',
         estado: 'pendiente',
         fecha_solicitud: new Date('2024-06-20'),
-        fecha_resolucion: null,
-        observaciones: 'Pendiente de autorización',
-        solicitante_id: 3,
-        asignado_a_id: null,
+        fecha_respuesta: null,
+        respuesta: null,
+        usuario_id: 3,
+        administrador_id: null,
         equipo_id: 5,
-        ubicacion_id: 6,
         fecha_registro: new Date(),
         createdAt: new Date(),
         updatedAt: new Date()
@@ -319,7 +301,7 @@ module.exports = {
     for (const solicitud of solicitudes) {
       const exists = await queryInterface.rawSelect('solicitudes', {
         where: { 
-          solicitante_id: solicitud.solicitante_id,
+          usuario_id: solicitud.usuario_id,
           fecha_solicitud: solicitud.fecha_solicitud,
           titulo: solicitud.titulo
         }

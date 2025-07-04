@@ -20,127 +20,45 @@ class DashboardController {
     try {
       const [
         totalEquipos,
-        equiposActivos,
-        equiposMantenimiento,
-        equiposFueraServicio,
-        totalMantenimientos,
-        mantenimientosPendientes,
-        totalSolicitudes,
+        equiposEnMantenimiento,
+        equiposCorrectivo,
+        totalCategorias,
         solicitudesPendientes,
-        totalAlertas,
-        alertasActivas,
-        totalUsuarios,
-        totalMovimientos
+        movimientosRecientes
       ] = await Promise.all([
         Equipo.count(),
-        Equipo.count({ where: { estado_actual: 'Activo' } }),
-        Equipo.count({ where: { estado_actual: 'En Mantenimiento' } }),
-        Equipo.count({ where: { estado_actual: 'Fuera de Servicio' } }),
-        Mantenimiento.count(),
-        Mantenimiento.count({ where: { estado: 'programado' } }),
-        Solicitud.count(),
+        Mantenimiento.count({ 
+          where: { 
+            estado: 'en_proceso',
+            tipo_mantenimiento: 'preventivo'
+          } 
+        }),
+        Mantenimiento.count({ 
+          where: { 
+            estado: 'en_proceso',
+            tipo_mantenimiento: 'correctivo'
+          } 
+        }),
+        TipoEquipo.count(),
         Solicitud.count({ where: { estado: 'pendiente' } }),
-        Alerta.count(),
-        Alerta.count({ where: { estado: 'activa' } }),
-        Usuario.count(),
-        Movimiento.count()
+        Movimiento.count({ 
+          where: { 
+            fecha_movimiento: {
+              [Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Últimos 30 días
+            }
+          } 
+        })
       ]);
-
-      // Estadísticas por tipo de equipo
-      const equiposPorTipo = await Equipo.findAll({
-        attributes: [
-          'tipo_equipo_id',
-          [Equipo.sequelize.fn('COUNT', '*'), 'total']
-        ],
-        include: [{
-          model: TipoEquipo,
-          as: 'tipo_equipo',
-          attributes: ['nombre']
-        }],
-        group: ['tipo_equipo_id'],
-        raw: true
-      });
-
-      // Estadísticas por ubicación
-      const equiposPorUbicacion = await Equipo.findAll({
-        attributes: [
-          'ubicacion_id',
-          [Equipo.sequelize.fn('COUNT', '*'), 'total']
-        ],
-        include: [{
-          model: Ubicacion,
-          as: 'ubicacion',
-          attributes: ['nombre']
-        }],
-        group: ['ubicacion_id'],
-        raw: true
-      });
-
-      // Mantenimientos por mes (últimos 6 meses)
-      const seisMesesAtras = new Date();
-      seisMesesAtras.setMonth(seisMesesAtras.getMonth() - 6);
-
-      const mantenimientosPorMes = await Mantenimiento.findAll({
-        attributes: [
-          [Equipo.sequelize.fn('DATE_FORMAT', Equipo.sequelize.col('fecha_mantenimiento'), '%Y-%m'), 'mes'],
-          [Equipo.sequelize.fn('COUNT', '*'), 'total']
-        ],
-        where: {
-          fecha_mantenimiento: {
-            [Op.gte]: seisMesesAtras
-          }
-        },
-        group: ['mes'],
-        order: [['mes', 'ASC']],
-        raw: true
-      });
-
-      // Valor total del inventario
-      const valorTotal = await Equipo.sum('valor_adquisicion', {
-        where: {
-          valor_adquisicion: {
-            [Op.not]: null
-          }
-        }
-      });
-
-      // Costo total de mantenimientos completados
-      const costoMantenimientos = await Mantenimiento.sum('costo', {
-        where: {
-          estado: 'completado',
-          costo: {
-            [Op.not]: null
-          }
-        }
-      });
 
       logger.info('Estadísticas del dashboard obtenidas');
 
       res.json({
-        success: true,
-        data: {
-          resumen: {
-            totalEquipos,
-            equiposActivos,
-            equiposMantenimiento,
-            equiposFueraServicio,
-            totalMantenimientos,
-            mantenimientosPendientes,
-            totalSolicitudes,
-            solicitudesPendientes,
-            totalAlertas,
-            alertasActivas,
-            totalUsuarios,
-            totalMovimientos
-          },
-          equiposPorTipo,
-          equiposPorUbicacion,
-          mantenimientosPorMes,
-          financiero: {
-            valorTotalInventario: valorTotal || 0,
-            costoTotalMantenimientos: costoMantenimientos || 0
-          }
-        }
+        totalEquipos,
+        equiposEnMantenimiento,
+        equiposCorrectivo,
+        totalCategorias,
+        solicitudesPendientes,
+        movimientosRecientes
       });
     } catch (error) {
       logger.error('Error al obtener estadísticas del dashboard:', error);

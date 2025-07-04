@@ -43,12 +43,12 @@ class MantenimientosController {
           {
             model: Equipo,
             as: 'equipo',
-            attributes: ['id', 'codigo', 'nombre', 'marca', 'modelo']
+            attributes: ['id', 'nombre', 'numero_serie', 'marca', 'modelo']
           },
           {
             model: Usuario,
             as: 'tecnico',
-            attributes: ['id', 'nombre', 'apellido', 'email']
+            attributes: ['id', 'nombre', 'correo']
           }
         ],
         order: [['fecha_mantenimiento', 'DESC']],
@@ -88,12 +88,12 @@ class MantenimientosController {
           {
             model: Equipo,
             as: 'equipo',
-            attributes: ['id', 'codigo', 'nombre', 'marca', 'modelo', 'estado_actual']
+            attributes: ['id', 'nombre', 'numero_serie', 'marca', 'modelo']
           },
           {
             model: Usuario,
             as: 'tecnico',
-            attributes: ['id', 'nombre', 'apellido', 'email']
+            attributes: ['id', 'nombre', 'correo']
           }
         ]
       });

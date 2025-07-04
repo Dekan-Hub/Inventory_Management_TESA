@@ -8,6 +8,7 @@ Backend del Sistema de Gestión de Inventarios Tecnológicos para el Instituto S
 - **API RESTful** completa con validaciones y manejo de errores
 - **Base de datos MySQL** con Sequelize ORM
 - **Sistema de migrations** para control de versiones de BD
+- **Sistema de adjuntos** para archivos en solicitudes
 - **Logs de auditoría** y generación de reportes
 - **Seguridad** con Helmet, CORS y Rate Limiting
 - **Testing** con Jest
@@ -26,8 +27,9 @@ backend/
 │   ├── equipos.controller.js
 │   ├── mantenimientos.controller.js
 │   ├── movimientos.controller.js
-│   ├── reportes.controller.js
 │   ├── solicitudes.controller.js
+│   ├── adjuntos.controller.js
+│   ├── reportes.controller.js
 │   ├── tipo_equipo.controller.js
 │   ├── ubicaciones.controller.js
 │   └── usuarios.controller.js
@@ -45,7 +47,8 @@ backend/
 │   ├── 007-create-movimientos.js
 │   ├── 008-create-solicitudes.js
 │   ├── 009-create-alertas.js
-│   └── 010-create-reportes.js
+│   ├── 010-create-reportes.js
+│   └── 011-create-adjuntos-solicitudes.js
 ├── models/               # Modelos de Sequelize
 │   ├── Usuario.js
 │   ├── Equipo.js
@@ -55,6 +58,7 @@ backend/
 │   ├── Mantenimiento.js
 │   ├── Movimiento.js
 │   ├── Solicitud.js
+│   ├── AdjuntoSolicitud.js
 │   ├── Alerta.js
 │   └── Reporte.js
 ├── routes/               # Rutas de la API
@@ -62,8 +66,9 @@ backend/
 │   ├── equipos.routes.js
 │   ├── mantenimientos.routes.js
 │   ├── movimientos.routes.js
-│   ├── reportes.routes.js
 │   ├── solicitudes.routes.js
+│   ├── adjuntos.routes.js
+│   ├── reportes.routes.js
 │   ├── tipo_equipo.routes.js
 │   ├── ubicaciones.routes.js
 │   └── usuarios.routes.js
@@ -74,6 +79,8 @@ backend/
 │   ├── logger.js         # Sistema de logging
 │   ├── reportGenerator.js # Generación de reportes
 │   └── seedData.js       # Datos de ejemplo
+├── uploads/              # Archivos subidos
+│   └── adjuntos/         # Adjuntos de solicitudes
 ├── tests/                # Tests unitarios
 ├── .env                  # Variables de entorno
 ├── .sequelizerc          # Configuración Sequelize CLI
@@ -91,6 +98,7 @@ backend/
 - **bcryptjs** - Encriptación de contraseñas
 - **Helmet** - Seguridad
 - **Morgan** - Logging
+- **Multer** - Manejo de archivos
 - **Jest** - Testing
 - **ExcelJS** - Generación de reportes Excel
 - **PDFKit** - Generación de reportes PDF
@@ -197,40 +205,85 @@ npm run lint:fix       # Corregir código automáticamente
 - `PUT /api/mantenimientos/:id` - Actualizar mantenimiento
 - `DELETE /api/mantenimientos/:id` - Eliminar mantenimiento
 
+### Movimientos
+- `GET /api/movimientos` - Listar movimientos
+- `POST /api/movimientos` - Crear movimiento
+- `PUT /api/movimientos/:id` - Actualizar movimiento
+- `DELETE /api/movimientos/:id` - Eliminar movimiento
+
+### Solicitudes
+- `GET /api/solicitudes` - Listar solicitudes
+- `GET /api/solicitudes/mis-solicitudes` - Mis solicitudes
+- `POST /api/solicitudes` - Crear solicitud
+- `PUT /api/solicitudes/:id` - Actualizar solicitud
+- `POST /api/solicitudes/:id/responder` - Responder solicitud (admin)
+- `DELETE /api/solicitudes/:id` - Eliminar solicitud (admin)
+
+### Adjuntos
+- `GET /api/adjuntos/solicitud/:solicitud_id` - Obtener adjuntos
+- `POST /api/adjuntos/solicitud/:solicitud_id` - Subir adjunto
+- `GET /api/adjuntos/:id/download` - Descargar adjunto
+- `DELETE /api/adjuntos/:id` - Eliminar adjunto
+
 ### Reportes
 - `GET /api/reportes` - Listar reportes
-- `POST /api/reportes` - Crear reporte
-- `GET /api/reportes/:id` - Obtener reporte específico
+- `POST /api/reportes` - Generar reporte
+- `GET /api/reportes/:id/download` - Descargar reporte
 
-### Usuarios
-- `GET /api/usuarios` - Listar usuarios (solo admin)
-- `POST /api/usuarios` - Crear usuario (solo admin)
-- `PUT /api/usuarios/:id` - Actualizar usuario (solo admin)
+## 📊 Funcionalidades Principales
+
+### Gestión de Equipos
+- ✅ CRUD completo de equipos
+- ✅ Asignación a usuarios
+- ✅ Control de ubicaciones
+- ✅ Estados operativos
+- ✅ Búsqueda y filtros avanzados
+
+### Sistema de Solicitudes
+- ✅ Creación de solicitudes por usuarios
+- ✅ Respuesta y aprobación por administradores
+- ✅ Adjuntos de archivos (PDF, Word, Excel, imágenes)
+- ✅ Estados de solicitud (pendiente, aprobada, rechazada, etc.)
+- ✅ Historial completo de solicitudes
+
+### Gestión de Mantenimientos
+- ✅ Registro de mantenimientos preventivos y correctivos
+- ✅ Asignación de técnicos
+- ✅ Control de costos
+- ✅ Estados de mantenimiento
+
+### Movimientos de Equipos
+- ✅ Registro de movimientos entre ubicaciones
+- ✅ Control de responsables
+- ✅ Estados de movimiento
+- ✅ Historial de movimientos
+
+### Sistema de Adjuntos
+- ✅ Subida de archivos (máximo 10MB)
+- ✅ Tipos permitidos: PDF, Word, Excel, imágenes, texto
+- ✅ Descarga segura de archivos
+- ✅ Eliminación con permisos
+- ✅ Almacenamiento organizado
+
+### Reportes
+- ✅ Generación de reportes en Excel y PDF
+- ✅ Reportes de inventario
+- ✅ Reportes de mantenimientos
+- ✅ Reportes de movimientos
+- ✅ Reportes personalizados
 
 ## 🔒 Seguridad
 
-- **JWT Tokens** para autenticación
-- **bcryptjs** para encriptación de contraseñas
+- **Autenticación JWT** con tokens seguros
+- **Autorización por roles** con permisos granulares
+- **Validación de datos** en todos los endpoints
+- **Rate limiting** para prevenir abuso
 - **Helmet** para headers de seguridad
-- **CORS** configurado
-- **Rate Limiting** para prevenir ataques
-- **Validación de entrada** con express-validator
+- **CORS** configurado para el frontend
+- **Encriptación** de contraseñas con bcrypt
+- **Validación de archivos** en adjuntos
 
-## 📊 Base de Datos
-
-### Tablas Principales
-- **usuarios** - Usuarios del sistema
-- **equipos** - Inventario de equipos
-- **tipo_equipo** - Tipos de equipos
-- **estado_equipo** - Estados operativos
-- **ubicaciones** - Ubicaciones físicas
-- **mantenimientos** - Registro de mantenimientos
-- **movimientos** - Movimientos de equipos
-- **solicitudes** - Solicitudes de usuarios
-- **alertas** - Alertas del sistema
-- **reportes** - Reportes generados
-
-## 🧪 Testing
+## 📝 Testing
 
 ```bash
 # Ejecutar todos los tests
@@ -243,38 +296,23 @@ npm run test:watch
 npm run test:coverage
 ```
 
-## 📝 Logs y Auditoría
+## 🚀 Despliegue
 
-- **Logs de aplicación** con Morgan
-- **Logs de auditoría** para acciones críticas
-- **Logs de errores** con stack traces
-- **Logs de base de datos** en desarrollo
-
-## 📈 Reportes
-
-- **Reportes PDF** con PDFKit
-- **Reportes Excel** con ExcelJS
-- **Reportes de inventario**
-- **Reportes de mantenimiento**
-- **Reportes de movimientos**
-
-## 🌐 Variables de Entorno
+### Variables de Entorno Requeridas
 
 ```env
 # Base de datos
 DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=tesa_inventario
 DB_USER=root
-DB_PASSWORD=password
+DB_PASS=password
+DB_NAME=inventory_management
 
 # JWT
-JWT_SECRET=your-secret-key
-JWT_EXPIRES_IN=24h
+JWT_SECRET=tu_secreto_jwt_muy_seguro
 
 # Servidor
 PORT=3000
-NODE_ENV=development
+NODE_ENV=production
 
 # CORS
 CORS_ORIGIN=http://localhost:5173
@@ -284,24 +322,40 @@ RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 ```
 
+### Comandos de Despliegue
+
+```bash
+# Instalar dependencias
+npm install --production
+
+# Ejecutar migrations
+npm run migrate
+
+# Iniciar servidor
+npm start
+```
+
+## 📚 Documentación Adicional
+
+- [API Documentation](./API.md) - Documentación completa de la API
+- [Migrations Guide](./MIGRATIONS_README.md) - Guía de migraciones
+- [Database Schema](./base%20de%20datos/database_schema.sql) - Esquema de base de datos
+- [ER Diagram](./base%20de%20datos/ER_Diagram.md) - Diagrama entidad-relación
+
 ## 🤝 Contribución
 
 1. Fork el proyecto
-2. Crear rama para feature (`git checkout -b feature/AmazingFeature`)
-3. Commit cambios (`git commit -m 'Add some AmazingFeature'`)
+2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
 4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir Pull Request
+5. Abrir un Pull Request
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia TESA.
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
-## 👥 Autores
+## 📞 Contacto
 
-- **Instituto San Antonio** - Desarrollo inicial
-
-## 🙏 Agradecimientos
-
-- Equipo de desarrollo del Instituto San Antonio
-- Comunidad de Node.js y Express
-- Contribuidores de las librerías utilizadas 
+- **Desarrollador**: Equipo de Desarrollo TESA
+- **Email**: desarrollo@tesa.edu
+- **Proyecto**: [https://github.com/tesa/inventario-backend](https://github.com/tesa/inventario-backend) 

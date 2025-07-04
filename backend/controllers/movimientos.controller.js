@@ -1,4 +1,5 @@
 const { Movimiento, Equipo, Usuario, Ubicacion } = require('../models');
+const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 
 /**
@@ -31,17 +32,17 @@ class MovimientosController {
 
       if (fecha_inicio || fecha_fin) {
         where.fecha_movimiento = {};
-        if (fecha_inicio) where.fecha_movimiento.$gte = new Date(fecha_inicio);
-        if (fecha_fin) where.fecha_movimiento.$lte = new Date(fecha_fin);
+        if (fecha_inicio) where.fecha_movimiento[Op.gte] = new Date(fecha_inicio);
+        if (fecha_fin) where.fecha_movimiento[Op.lte] = new Date(fecha_fin);
       }
 
       const movimientos = await Movimiento.findAndCountAll({
         where,
         include: [
-          { model: Equipo, as: 'equipo', attributes: ['id', 'codigo', 'nombre'] },
-          { model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'apellido', 'email'] },
-          { model: Ubicacion, as: 'ubicacion_origen', attributes: ['id', 'nombre', 'descripcion'] },
-          { model: Ubicacion, as: 'ubicacion_destino', attributes: ['id', 'nombre', 'descripcion'] }
+          { model: Equipo, as: 'equipo', attributes: ['id', 'nombre', 'numero_serie'] },
+          { model: Usuario, as: 'responsable', attributes: ['id', 'nombre', 'correo'] },
+          { model: Ubicacion, as: 'ubicacionOrigen', attributes: ['id', 'edificio', 'sala'] },
+          { model: Ubicacion, as: 'ubicacionDestino', attributes: ['id', 'edificio', 'sala'] }
         ],
         order: [['fecha_movimiento', 'DESC']],
         limit: parseInt(limit),
@@ -76,10 +77,10 @@ class MovimientosController {
       const { id } = req.params;
       const movimiento = await Movimiento.findByPk(id, {
         include: [
-          { model: Equipo, as: 'equipo', attributes: ['id', 'codigo', 'nombre'] },
-          { model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'apellido', 'email'] },
-          { model: Ubicacion, as: 'ubicacion_origen', attributes: ['id', 'nombre', 'descripcion'] },
-          { model: Ubicacion, as: 'ubicacion_destino', attributes: ['id', 'nombre', 'descripcion'] }
+          { model: Equipo, as: 'equipo', attributes: ['id', 'nombre', 'numero_serie'] },
+          { model: Usuario, as: 'responsable', attributes: ['id', 'nombre', 'correo'] },
+          { model: Ubicacion, as: 'ubicacionOrigen', attributes: ['id', 'edificio', 'sala'] },
+          { model: Ubicacion, as: 'ubicacionDestino', attributes: ['id', 'edificio', 'sala'] }
         ]
       });
       if (!movimiento) {
@@ -120,11 +121,11 @@ class MovimientosController {
       }
 
       // Asignar el usuario actual como responsable
-      const usuario_id = req.user.id;
+      const responsable_id = req.user.id;
 
       const movimiento = await Movimiento.create({
         equipo_id,
-        usuario_id,
+        responsable_id,
         ubicacion_origen_id,
         ubicacion_destino_id,
         motivo,
@@ -164,7 +165,7 @@ class MovimientosController {
       }
 
       // Solo admin o el usuario que registró el movimiento puede actualizar
-      if (req.user.rol !== 'admin' && movimiento.usuario_id !== req.user.id) {
+      if (req.user.rol !== 'admin' && movimiento.responsable_id !== req.user.id) {
         return res.status(403).json({ success: false, message: 'No tienes permisos para actualizar este movimiento' });
       }
 

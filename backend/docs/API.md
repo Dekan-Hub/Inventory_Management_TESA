@@ -95,7 +95,6 @@ POST /api/equipos
   "marca": "Dell",
   "observaciones": "Equipo para laboratorio",
   "fecha_adquisicion": "2024-01-15",
-  "costo_adquisicion": 2500.00,
   "tipo_equipo_id": 1,
   "estado_id": 1,
   "ubicacion_id": 1,
@@ -274,13 +273,73 @@ const response = await fetch('/api/equipos', {
     marca: 'Lenovo',
     tipo_equipo_id: 1,
     estado_id: 1,
-    ubicacion_id: 1
+    ubicacion_id: 1,
+    observaciones: 'Equipo para laboratorio',
+    usuario_asignado_id: 1,
+    fecha_adquisicion: '2024-01-20'
   })
 });
 
 const data = await response.json();
 console.log(data);
 ```
+
+## 📎 Adjuntos de Solicitudes
+
+### Obtener adjuntos de una solicitud
+```http
+GET /api/adjuntos/solicitud/:solicitud_id
+```
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+### Subir adjunto a una solicitud
+```http
+POST /api/adjuntos/solicitud/:solicitud_id
+```
+
+**Headers:**
+```
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+```
+
+**Body (FormData):**
+```
+archivo: <file>
+descripcion: "Descripción opcional del archivo"
+```
+
+**Límites:**
+- Tamaño máximo: 10MB
+- Tipos permitidos: PDF, Word, Excel, imágenes, texto
+
+### Descargar adjunto
+```http
+GET /api/adjuntos/:id/download
+```
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+### Eliminar adjunto
+```http
+DELETE /api/adjuntos/:id
+```
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Notas:**
+- Solo el propietario del archivo o administrador puede eliminarlo
+- Al eliminar una solicitud, se eliminan automáticamente todos sus adjuntos
 
 ## 🚀 Inicio Rápido
 
@@ -295,17 +354,22 @@ console.log(data);
    npm install
    ```
 
-3. **Ejecutar seed (datos iniciales):**
+3. **Ejecutar migraciones:**
+   ```bash
+   npm run migrate
+   ```
+
+4. **Ejecutar seed (datos iniciales):**
    ```bash
    npm run seed
    ```
 
-4. **Iniciar servidor:**
+5. **Iniciar servidor:**
    ```bash
    npm run dev
    ```
 
-5. **Probar autenticación:**
+6. **Probar autenticación:**
    ```bash
    curl -X POST http://localhost:3000/api/auth/login \
      -H "Content-Type: application/json" \
@@ -318,4 +382,5 @@ console.log(data);
 - Los IDs son números enteros
 - Los campos de texto tienen límites según el esquema de la base de datos
 - Las respuestas incluyen siempre un campo `message` con información descriptiva
-- Los errores incluyen detalles específicos cuando es posible 
+- Los errores incluyen detalles específicos cuando es posible
+- Los archivos adjuntos se almacenan en `backend/uploads/adjuntos/` 

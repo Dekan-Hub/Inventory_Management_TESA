@@ -10,7 +10,7 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       tipo_solicitud: {
-        type: Sequelize.ENUM('equipo', 'mantenimiento', 'movimiento', 'reporte'),
+        type: Sequelize.ENUM('nuevo_equipo', 'mantenimiento', 'movimiento', 'otro'),
         allowNull: false,
         comment: 'Tipo de solicitud realizada'
       },
@@ -24,14 +24,8 @@ module.exports = {
         allowNull: false,
         comment: 'Descripción detallada de la solicitud'
       },
-      prioridad: {
-        type: Sequelize.ENUM('baja', 'media', 'alta', 'urgente'),
-        allowNull: false,
-        defaultValue: 'media',
-        comment: 'Prioridad de la solicitud'
-      },
       estado: {
-        type: Sequelize.ENUM('pendiente', 'en_revision', 'aprobada', 'rechazada', 'completada', 'cancelada'),
+        type: Sequelize.ENUM('pendiente', 'aprobada', 'rechazada', 'en_proceso', 'completada'),
         allowNull: false,
         defaultValue: 'pendiente',
         comment: 'Estado actual de la solicitud'
@@ -42,17 +36,17 @@ module.exports = {
         defaultValue: Sequelize.NOW,
         comment: 'Fecha de la solicitud'
       },
-      fecha_resolucion: {
+      fecha_respuesta: {
         type: Sequelize.DATE,
         allowNull: true,
-        comment: 'Fecha de resolución de la solicitud'
+        comment: 'Fecha de respuesta del administrador'
       },
-      observaciones: {
+      respuesta: {
         type: Sequelize.TEXT,
         allowNull: true,
-        comment: 'Observaciones adicionales'
+        comment: 'Respuesta del administrador'
       },
-      solicitante_id: {
+      usuario_id: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
@@ -63,7 +57,7 @@ module.exports = {
         onDelete: 'RESTRICT',
         comment: 'ID del usuario que realiza la solicitud'
       },
-      asignado_a_id: {
+      administrador_id: {
         type: Sequelize.INTEGER,
         allowNull: true,
         references: {
@@ -72,7 +66,7 @@ module.exports = {
         },
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL',
-        comment: 'ID del usuario asignado para resolver la solicitud'
+        comment: 'ID del administrador que responde la solicitud'
       },
       equipo_id: {
         type: Sequelize.INTEGER,
@@ -84,17 +78,6 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL',
         comment: 'ID del equipo relacionado con la solicitud'
-      },
-      ubicacion_id: {
-        type: Sequelize.INTEGER,
-        allowNull: true,
-        references: {
-          model: 'ubicaciones',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL',
-        comment: 'ID de la ubicación relacionada con la solicitud'
       },
       fecha_registro: {
         type: Sequelize.DATE,
@@ -113,11 +96,10 @@ module.exports = {
     });
 
     // Índices para mejorar rendimiento
-    await queryInterface.addIndex('solicitudes', ['solicitante_id']);
-    await queryInterface.addIndex('solicitudes', ['asignado_a_id']);
+    await queryInterface.addIndex('solicitudes', ['usuario_id']);
+    await queryInterface.addIndex('solicitudes', ['administrador_id']);
     await queryInterface.addIndex('solicitudes', ['tipo_solicitud']);
     await queryInterface.addIndex('solicitudes', ['estado']);
-    await queryInterface.addIndex('solicitudes', ['prioridad']);
     await queryInterface.addIndex('solicitudes', ['fecha_solicitud']);
     await queryInterface.addIndex('solicitudes', ['equipo_id']);
   },

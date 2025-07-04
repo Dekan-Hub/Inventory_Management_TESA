@@ -1,4 +1,5 @@
 const { Usuario } = require('../models');
+const { Op } = require('sequelize');
 const bcrypt = require('bcryptjs');
 const logger = require('../utils/logger');
 
@@ -17,15 +18,14 @@ class UsuariosController {
       if (rol) where.rol = rol;
       if (activo !== undefined) where.activo = activo === 'true';
       if (search) {
-        where.$or = [
-          { nombre: { $like: `%${search}%` } },
-          { apellido: { $like: `%${search}%` } },
-          { email: { $like: `%${search}%` } }
+        where[Op.or] = [
+          { nombre: { [Op.like]: `%${search}%` } },
+          { correo: { [Op.like]: `%${search}%` } }
         ];
       }
       const usuarios = await Usuario.findAndCountAll({
         where,
-        attributes: { exclude: ['password'] },
+        attributes: { exclude: ['contraseña'] },
         order: [['nombre', 'ASC']],
         limit: parseInt(limit),
         offset: parseInt(offset)
@@ -52,7 +52,7 @@ class UsuariosController {
     try {
       const { id } = req.params;
       const usuario = await Usuario.findByPk(id, {
-        attributes: { exclude: ['password'] }
+        attributes: { exclude: ['contraseña'] }
       });
       if (!usuario) {
         return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
@@ -67,26 +67,57 @@ class UsuariosController {
 
   async create(req, res, next) {
     try {
-      const { nombre, apellido, email, password, rol = 'usuario', activo = true } = req.body;
-      // Verificar si el email ya existe
-      const usuarioExistente = await Usuario.findOne({ where: { email } });
-      if (usuarioExistente) {
-        return res.status(400).json({ success: false, message: 'El email ya está registrado' });
+      const { nombre, usuario, correo, contraseña, rol = 'usuario', activo = true } = req.body;
+      
+      // Validar campos requeridos
+      if (!nombre || !usuario || !correo || !contraseña) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Los campos nombre, usuario, correo y contraseña son requeridos' 
+        });
       }
-      // Encriptar contraseña
-      const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-      const usuario = await Usuario.create({
+
+      // Verificar si el usuario ya existe
+      const usuarioExistente = await Usuario.findOne({ 
+        where: { 
+          [Op.or]: [
+            { usuario: usuario },
+            { correo: correo }
+          ]
+        } 
+      });
+      
+      if (usuarioExistente) {
+        if (usuarioExistente.usuario === usuario) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'El nombre de usuario ya está registrado' 
+          });
+        } else {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'El correo ya está registrado' 
+          });
+        }
+      }
+
+      // Crear el usuario
+      const nuevoUsuario = await Usuario.create({
         nombre,
-        apellido,
-        email,
-        password: hashedPassword,
+        usuario,
+        correo,
+        contraseña,
         rol,
         activo
       });
-      const { password: _, ...usuarioSinPassword } = usuario.toJSON();
-      logger.info(`Usuario creado: ID ${usuario.id}`);
-      res.status(201).json({ success: true, message: 'Usuario creado exitosamente', data: usuarioSinPassword });
+
+      const { contraseña: _, ...usuarioSinContraseña } = nuevoUsuario.toJSON();
+      logger.info(`Usuario creado: ID ${nuevoUsuario.id}`);
+      res.status(201).json({ 
+        success: true, 
+        message: 'Usuario creado exitosamente', 
+        data: usuarioSinContraseña 
+      });
     } catch (error) {
       logger.error('Error al crear usuario:', error);
       next(error);
@@ -96,7 +127,7 @@ class UsuariosController {
   async update(req, res, next) {
     try {
       const { id } = req.params;
-      const { nombre, apellido, email, password, rol, activo } = req.body;
+      const { nombre, correo, contraseña, rol, activo } = req.body;
       const usuario = await Usuario.findByPk(id);
       if (!usuario) {
         return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
@@ -105,23 +136,23 @@ class UsuariosController {
       if (rol && req.user.rol !== 'admin') {
         return res.status(403).json({ success: false, message: 'Solo los administradores pueden cambiar roles' });
       }
-      // Verificar email único si se está cambiando
-      if (email && email !== usuario.email) {
-        const usuarioExistente = await Usuario.findOne({ where: { email } });
+      // Verificar correo único si se está cambiando
+      if (correo && correo !== usuario.correo) {
+        const usuarioExistente = await Usuario.findOne({ where: { correo } });
         if (usuarioExistente) {
-          return res.status(400).json({ success: false, message: 'El email ya está registrado' });
+          return res.status(400).json({ success: false, message: 'El correo ya está registrado' });
         }
       }
-      const updateData = { nombre, apellido, email, rol, activo };
+      const updateData = { nombre, correo, rol, activo };
       // Encriptar nueva contraseña si se proporciona
-      if (password) {
+      if (contraseña) {
         const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
-        updateData.password = await bcrypt.hash(password, saltRounds);
+        updateData.contraseña = await bcrypt.hash(contraseña, saltRounds);
       }
       await usuario.update(updateData);
-      const { password: _, ...usuarioSinPassword } = usuario.toJSON();
+      const { contraseña: _, ...usuarioSinContraseña } = usuario.toJSON();
       logger.info(`Usuario actualizado: ID ${id}`);
-      res.json({ success: true, message: 'Usuario actualizado exitosamente', data: usuarioSinPassword });
+      res.json({ success: true, message: 'Usuario actualizado exitosamente', data: usuarioSinContraseña });
     } catch (error) {
       logger.error('Error al actualizar usuario:', error);
       next(error);
@@ -155,7 +186,7 @@ class UsuariosController {
   async getProfile(req, res, next) {
     try {
       const usuario = await Usuario.findByPk(req.user.id, {
-        attributes: { exclude: ['password'] }
+        attributes: { exclude: ['contraseña'] }
       });
       if (!usuario) {
         return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
@@ -170,28 +201,28 @@ class UsuariosController {
 
   async updateProfile(req, res, next) {
     try {
-      const { nombre, apellido, email, password } = req.body;
+      const { nombre, correo, contraseña } = req.body;
       const usuario = await Usuario.findByPk(req.user.id);
       if (!usuario) {
         return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
       }
-      // Verificar email único si se está cambiando
-      if (email && email !== usuario.email) {
-        const usuarioExistente = await Usuario.findOne({ where: { email } });
+      // Verificar correo único si se está cambiando
+      if (correo && correo !== usuario.correo) {
+        const usuarioExistente = await Usuario.findOne({ where: { correo } });
         if (usuarioExistente) {
-          return res.status(400).json({ success: false, message: 'El email ya está registrado' });
+          return res.status(400).json({ success: false, message: 'El correo ya está registrado' });
         }
       }
-      const updateData = { nombre, apellido, email };
+      const updateData = { nombre, correo };
       // Encriptar nueva contraseña si se proporciona
-      if (password) {
+      if (contraseña) {
         const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
-        updateData.password = await bcrypt.hash(password, saltRounds);
+        updateData.contraseña = await bcrypt.hash(contraseña, saltRounds);
       }
       await usuario.update(updateData);
-      const { password: _, ...usuarioSinPassword } = usuario.toJSON();
+      const { contraseña: _, ...usuarioSinContraseña } = usuario.toJSON();
       logger.info(`Perfil actualizado: ID ${req.user.id}`);
-      res.json({ success: true, message: 'Perfil actualizado exitosamente', data: usuarioSinPassword });
+      res.json({ success: true, message: 'Perfil actualizado exitosamente', data: usuarioSinContraseña });
     } catch (error) {
       logger.error('Error al actualizar perfil:', error);
       next(error);

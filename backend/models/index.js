@@ -14,6 +14,7 @@ const Equipo = require('./Equipo');
 const Mantenimiento = require('./Mantenimiento');
 const Movimiento = require('./Movimiento');
 const Solicitud = require('./Solicitud');
+const AdjuntoSolicitud = require('./AdjuntoSolicitud');
 const Alerta = require('./Alerta');
 const Reporte = require('./Reporte');
 
@@ -151,6 +152,26 @@ Solicitud.belongsTo(Equipo, {
     as: 'equipo' 
 });
 
+// Solicitud - AdjuntoSolicitud (1:N)
+Solicitud.hasMany(AdjuntoSolicitud, { 
+    foreignKey: 'solicitud_id', 
+    as: 'adjuntos' 
+});
+AdjuntoSolicitud.belongsTo(Solicitud, { 
+    foreignKey: 'solicitud_id', 
+    as: 'solicitud' 
+});
+
+// Usuario - AdjuntoSolicitud (1:N)
+Usuario.hasMany(AdjuntoSolicitud, { 
+    foreignKey: 'usuario_id', 
+    as: 'adjuntosSubidos' 
+});
+AdjuntoSolicitud.belongsTo(Usuario, { 
+    foreignKey: 'usuario_id', 
+    as: 'usuario' 
+});
+
 // Usuario - Alerta (1:N)
 Usuario.hasMany(Alerta, { 
     foreignKey: 'usuario_id', 
@@ -181,6 +202,7 @@ module.exports = {
     Mantenimiento,
     Movimiento,
     Solicitud,
+    AdjuntoSolicitud,
     Alerta,
     Reporte
 }; 
