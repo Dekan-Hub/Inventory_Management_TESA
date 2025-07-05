@@ -38,12 +38,12 @@ const Reporte = sequelize.define('Reporte', {
         defaultValue: DataTypes.NOW,
         comment: 'Fecha de generación del reporte'
     },
-    usuario_generador_id: {
+    usuario_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         comment: 'FK: ID del usuario que generó el reporte'
     },
-    archivo_path: {
+    ruta_archivo: {
         type: DataTypes.STRING(500),
         allowNull: true,
         comment: 'Ruta del archivo generado'
@@ -54,5 +54,13 @@ const Reporte = sequelize.define('Reporte', {
     createdAt: 'fecha_generacion',
     updatedAt: false
 });
+
+// Definir relaciones
+Reporte.associate = (models) => {
+    Reporte.belongsTo(models.Usuario, {
+        foreignKey: 'usuario_id',
+        as: 'generador'
+    });
+};
 
 module.exports = Reporte; 

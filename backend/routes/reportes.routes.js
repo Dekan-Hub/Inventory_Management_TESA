@@ -14,6 +14,9 @@ router.get('/', verifyToken, checkRole(['administrador', 'tecnico', 'usuario']),
 // Obtener reporte por ID
 router.get('/:id', verifyToken, checkRole(['administrador', 'tecnico', 'usuario']), reportesController.getById);
 
+// Descargar reporte
+router.get('/:id/download', verifyToken, checkRole(['administrador', 'tecnico', 'usuario']), reportesController.download);
+
 // Crear nuevo reporte
 router.post('/', verifyToken, checkRole(['administrador', 'tecnico']), reportesController.create);
 

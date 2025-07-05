@@ -4,16 +4,27 @@ const fs = require('fs');
 const path = require('path');
 const { Equipo, Mantenimiento, Movimiento, Solicitud, Alerta, Usuario } = require('../models');
 const logger = require('./logger');
+const imageToBase64 = require('image-to-base64');
 
 class ReportGenerator {
   constructor() {
     this.reportsDir = path.join(__dirname, '../reports');
+    this.logoPath = path.join(__dirname, '../../frontend/src/assets/LOGO TESA.png');
     this.ensureReportsDirectory();
   }
 
   ensureReportsDirectory() {
     if (!fs.existsSync(this.reportsDir)) {
       fs.mkdirSync(this.reportsDir, { recursive: true });
+    }
+  }
+
+  async getLogoBase64() {
+    try {
+      return await imageToBase64(this.logoPath);
+    } catch (e) {
+      logger.error('No se pudo cargar el logo para el PDF:', e);
+      return null;
     }
   }
 
@@ -43,8 +54,8 @@ class ReportGenerator {
       const equipos = await Equipo.findAll({
         where: filters,
         include: [
-          { model: require('../models').TipoEquipo, as: 'tipo_equipo' },
-          { model: require('../models').EstadoEquipo, as: 'estado_equipo' },
+          { model: require('../models').TipoEquipo, as: 'tipoEquipo' },
+          { model: require('../models').EstadoEquipo, as: 'estadoEquipo' },
           { model: require('../models').Ubicacion, as: 'ubicacion' }
         ]
       });
@@ -57,8 +68,8 @@ class ReportGenerator {
           nombre: equipo.nombre,
           marca: equipo.marca,
           modelo: equipo.modelo,
-          tipo: equipo.tipo_equipo?.nombre || '',
-          estado: equipo.estado_equipo?.nombre || '',
+          tipo: equipo.tipoEquipo?.nombre || '',
+          estado: equipo.estadoEquipo?.nombre || '',
           ubicacion: equipo.ubicacion?.nombre || '',
           fecha_adquisicion: equipo.fecha_adquisicion ? new Date(equipo.fecha_adquisicion).toLocaleDateString() : '',
           valor_adquisicion: equipo.valor_adquisicion || 0
@@ -110,7 +121,7 @@ class ReportGenerator {
       const mantenimientos = await Mantenimiento.findAll({
         where: filters,
         include: [
-          { model: Equipo, as: 'equipo', attributes: ['codigo', 'nombre'] },
+          { model: Equipo, as: 'equipo', attributes: ['id', 'nombre'] },
           { model: Usuario, as: 'tecnico', attributes: ['nombre', 'apellido'] }
         ],
         order: [['fecha_mantenimiento', 'DESC']]
@@ -120,7 +131,7 @@ class ReportGenerator {
       mantenimientos.forEach(mantenimiento => {
         worksheet.addRow({
           id: mantenimiento.id,
-          equipo: `${mantenimiento.equipo?.codigo} - ${mantenimiento.equipo?.nombre}`,
+          equipo: `${mantenimiento.equipo?.id} - ${mantenimiento.equipo?.nombre}`,
           tipo_mantenimiento: mantenimiento.tipo_mantenimiento,
           descripcion: mantenimiento.descripcion,
           estado: mantenimiento.estado,
@@ -175,8 +186,8 @@ class ReportGenerator {
         const equipos = await Equipo.findAll({
           where: filters,
           include: [
-            { model: require('../models').TipoEquipo, as: 'tipo_equipo' },
-            { model: require('../models').EstadoEquipo, as: 'estado_equipo' },
+            { model: require('../models').TipoEquipo, as: 'tipoEquipo' },
+            { model: require('../models').EstadoEquipo, as: 'estadoEquipo' },
             { model: require('../models').Ubicacion, as: 'ubicacion' }
           ]
         });
@@ -205,7 +216,7 @@ class ReportGenerator {
 
           doc.text(equipo.codigo, startX, yPosition);
           doc.text(equipo.nombre.substring(0, 20), startX + columnWidth, yPosition);
-          doc.text(equipo.estado_equipo?.nombre || '', startX + columnWidth * 2, yPosition);
+          doc.text(equipo.estadoEquipo?.nombre || '', startX + columnWidth * 2, yPosition);
           doc.text(equipo.ubicacion?.nombre || '', startX + columnWidth * 3, yPosition);
 
           yPosition += 15;
@@ -302,6 +313,216 @@ class ReportGenerator {
       logger.error('Error generando reporte Excel de estadísticas:', error);
       throw error;
     }
+  }
+
+  async generateMovimientosExcel(filters = {}) {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Movimientos');
+      worksheet.columns = [
+        { header: 'ID', key: 'id', width: 10 },
+        { header: 'Equipo', key: 'equipo', width: 20 },
+        { header: 'Responsable', key: 'responsable', width: 25 },
+        { header: 'Origen', key: 'origen', width: 20 },
+        { header: 'Destino', key: 'destino', width: 20 },
+        { header: 'Fecha', key: 'fecha', width: 20 },
+        { header: 'Observaciones', key: 'observaciones', width: 40 }
+      ];
+      const movimientos = await Movimiento.findAll({
+        where: filters,
+        include: [
+          { model: Equipo, as: 'equipo', attributes: ['id', 'nombre'] },
+          { model: Usuario, as: 'responsable', attributes: ['nombre'] },
+          { model: require('../models').Ubicacion, as: 'ubicacionOrigen', attributes: ['nombre'] },
+          { model: require('../models').Ubicacion, as: 'ubicacionDestino', attributes: ['nombre'] }
+        ],
+        order: [['fecha_movimiento', 'DESC']]
+      });
+      movimientos.forEach(mov => {
+        worksheet.addRow({
+          id: mov.id,
+          equipo: `${mov.equipo?.id} - ${mov.equipo?.nombre}`,
+          responsable: mov.responsable?.nombre,
+          origen: mov.ubicacionOrigen?.nombre,
+          destino: mov.ubicacionDestino?.nombre,
+          fecha: new Date(mov.fecha_movimiento).toLocaleDateString(),
+          observaciones: mov.observaciones || ''
+        });
+      });
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+      const filename = `movimientos_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const filepath = path.join(this.reportsDir, filename);
+      await workbook.xlsx.writeFile(filepath);
+      logger.info(`Reporte Excel de movimientos generado: ${filepath}`);
+      return { filename, filepath };
+    } catch (error) {
+      logger.error('Error generando reporte Excel de movimientos:', error);
+      throw error;
+    }
+  }
+
+  async generateMovimientosPDF(filters = {}) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const filename = `movimientos_${new Date().toISOString().split('T')[0]}.pdf`;
+        const filepath = path.join(this.reportsDir, filename);
+        const doc = new PDFDocument();
+        const stream = fs.createWriteStream(filepath);
+        doc.pipe(stream);
+        // Logo
+        const logoBase64 = await this.getLogoBase64();
+        if (logoBase64) {
+          doc.image(Buffer.from(logoBase64, 'base64'), 50, 20, { width: 80 });
+        }
+        doc.fontSize(20).text('Reporte de Movimientos', 0, 40, { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(12).text(`Generado el: ${new Date().toLocaleDateString()}`, { align: 'center' });
+        doc.moveDown(2);
+        const movimientos = await Movimiento.findAll({
+          where: filters,
+          include: [
+            { model: Equipo, as: 'equipo', attributes: ['id', 'nombre'] },
+            { model: Usuario, as: 'responsable', attributes: ['nombre'] },
+            { model: require('../models').Ubicacion, as: 'ubicacionOrigen', attributes: ['nombre'] },
+            { model: require('../models').Ubicacion, as: 'ubicacionDestino', attributes: ['nombre'] }
+          ],
+          order: [['fecha_movimiento', 'DESC']]
+        });
+        let yPosition = doc.y + 20;
+        const startX = 50;
+        const columnWidth = 80;
+        doc.fontSize(10).font('Helvetica-Bold');
+        doc.text('Equipo', startX, yPosition);
+        doc.text('Responsable', startX + columnWidth, yPosition);
+        doc.text('Origen', startX + columnWidth * 2, yPosition);
+        doc.text('Destino', startX + columnWidth * 3, yPosition);
+        doc.text('Fecha', startX + columnWidth * 4, yPosition);
+        yPosition += 20;
+        doc.fontSize(9).font('Helvetica');
+        movimientos.forEach(mov => {
+          if (yPosition > 700) { doc.addPage(); yPosition = 50; }
+          doc.text(`${mov.equipo?.id} - ${mov.equipo?.nombre}`, startX, yPosition);
+          doc.text(mov.responsable?.nombre, startX + columnWidth, yPosition);
+          doc.text(mov.ubicacionOrigen?.nombre, startX + columnWidth * 2, yPosition);
+          doc.text(mov.ubicacionDestino?.nombre, startX + columnWidth * 3, yPosition);
+          doc.text(new Date(mov.fecha_movimiento).toLocaleDateString(), startX + columnWidth * 4, yPosition);
+          yPosition += 15;
+        });
+        doc.end();
+        stream.on('finish', () => {
+          logger.info(`Reporte PDF de movimientos generado: ${filepath}`);
+          resolve({ filename, filepath });
+        });
+        stream.on('error', reject);
+      } catch (error) {
+        logger.error('Error generando reporte PDF de movimientos:', error);
+        reject(error);
+      }
+    });
+  }
+
+  async generateSolicitudesExcel(filters = {}) {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Solicitudes');
+      worksheet.columns = [
+        { header: 'ID', key: 'id', width: 10 },
+        { header: 'Solicitante', key: 'solicitante', width: 25 },
+        { header: 'Equipo', key: 'equipo', width: 20 },
+        { header: 'Tipo', key: 'tipo', width: 20 },
+        { header: 'Estado', key: 'estado', width: 15 },
+        { header: 'Fecha', key: 'fecha', width: 20 },
+        { header: 'Descripción', key: 'descripcion', width: 40 }
+      ];
+      const solicitudes = await Solicitud.findAll({
+        where: filters,
+        include: [
+          { model: Usuario, as: 'solicitante', attributes: ['nombre'] },
+          { model: Equipo, as: 'equipo', attributes: ['id', 'nombre'] }
+        ],
+        order: [['fecha_solicitud', 'DESC']]
+      });
+      solicitudes.forEach(sol => {
+        worksheet.addRow({
+          id: sol.id,
+          solicitante: sol.solicitante?.nombre,
+          equipo: `${sol.equipo?.id} - ${sol.equipo?.nombre}`,
+          tipo: sol.tipo_solicitud,
+          estado: sol.estado,
+          fecha: new Date(sol.fecha_solicitud).toLocaleDateString(),
+          descripcion: sol.descripcion || ''
+        });
+      });
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+      const filename = `solicitudes_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const filepath = path.join(this.reportsDir, filename);
+      await workbook.xlsx.writeFile(filepath);
+      logger.info(`Reporte Excel de solicitudes generado: ${filepath}`);
+      return { filename, filepath };
+    } catch (error) {
+      logger.error('Error generando reporte Excel de solicitudes:', error);
+      throw error;
+    }
+  }
+
+  async generateSolicitudesPDF(filters = {}) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const filename = `solicitudes_${new Date().toISOString().split('T')[0]}.pdf`;
+        const filepath = path.join(this.reportsDir, filename);
+        const doc = new PDFDocument();
+        const stream = fs.createWriteStream(filepath);
+        doc.pipe(stream);
+        // Logo
+        const logoBase64 = await this.getLogoBase64();
+        if (logoBase64) {
+          doc.image(Buffer.from(logoBase64, 'base64'), 50, 20, { width: 80 });
+        }
+        doc.fontSize(20).text('Reporte de Solicitudes', 0, 40, { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(12).text(`Generado el: ${new Date().toLocaleDateString()}`, { align: 'center' });
+        doc.moveDown(2);
+        const solicitudes = await Solicitud.findAll({
+          where: filters,
+          include: [
+            { model: Usuario, as: 'solicitante', attributes: ['nombre'] },
+            { model: Equipo, as: 'equipo', attributes: ['id', 'nombre'] }
+          ],
+          order: [['fecha_solicitud', 'DESC']]
+        });
+        let yPosition = doc.y + 20;
+        const startX = 50;
+        const columnWidth = 80;
+        doc.fontSize(10).font('Helvetica-Bold');
+        doc.text('Solicitante', startX, yPosition);
+        doc.text('Equipo', startX + columnWidth, yPosition);
+        doc.text('Tipo', startX + columnWidth * 2, yPosition);
+        doc.text('Estado', startX + columnWidth * 3, yPosition);
+        doc.text('Fecha', startX + columnWidth * 4, yPosition);
+        yPosition += 20;
+        doc.fontSize(9).font('Helvetica');
+        solicitudes.forEach(sol => {
+          if (yPosition > 700) { doc.addPage(); yPosition = 50; }
+          doc.text(sol.solicitante?.nombre, startX, yPosition);
+          doc.text(`${sol.equipo?.id} - ${sol.equipo?.nombre}`, startX + columnWidth, yPosition);
+          doc.text(sol.tipo_solicitud, startX + columnWidth * 2, yPosition);
+          doc.text(sol.estado, startX + columnWidth * 3, yPosition);
+          doc.text(new Date(sol.fecha_solicitud).toLocaleDateString(), startX + columnWidth * 4, yPosition);
+          yPosition += 15;
+        });
+        doc.end();
+        stream.on('finish', () => {
+          logger.info(`Reporte PDF de solicitudes generado: ${filepath}`);
+          resolve({ filename, filepath });
+        });
+        stream.on('error', reject);
+      } catch (error) {
+        logger.error('Error generando reporte PDF de solicitudes:', error);
+        reject(error);
+      }
+    });
   }
 }
 

@@ -184,11 +184,11 @@ Alerta.belongsTo(Usuario, {
 
 // Usuario - Reporte (1:N)
 Usuario.hasMany(Reporte, { 
-    foreignKey: 'usuario_generador_id', 
+    foreignKey: 'usuario_id', 
     as: 'reportesGenerados' 
 });
 Reporte.belongsTo(Usuario, { 
-    foreignKey: 'usuario_generador_id', 
+    foreignKey: 'usuario_id', 
     as: 'generador' 
 });
 
